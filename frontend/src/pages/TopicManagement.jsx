@@ -289,7 +289,7 @@ function TopicManagement() {
                 <table className="table">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>S.No</th>
                             <th>Title</th>
                             <th>Video</th>
                             <th>PDF</th>
@@ -305,9 +305,9 @@ function TopicManagement() {
                                 </td>
                             </tr>
                         ) : (
-                            topics.map(topic => (
+                            topics.map((topic, index) => (
                                 <tr key={topic.id}>
-                                    <td>{topic.id}</td>
+                                    <td>{index + 1}</td>
                                     <td>{topic.title}</td>
                                     <td>
                                         {topic.videoUrl ? (
