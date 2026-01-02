@@ -11,6 +11,7 @@ import CourseManagement from './pages/CourseManagement';
 import SubjectManagement from './pages/SubjectManagement';
 import TopicManagement from './pages/TopicManagement';
 import StudentManagement from './pages/StudentManagement';
+import QuizManagement from './pages/QuizManagement';
 import { authService } from './services/authService';
 
 function PrivateRoute({ children }) {
@@ -78,6 +79,17 @@ function App() {
                     }
                 >
                     <Route index element={<StudentManagement />} />
+                </Route>
+
+                <Route
+                    path="/quizzes"
+                    element={
+                        <PrivateRoute>
+                            <InstructorDashboard />
+                        </PrivateRoute>
+                    }
+                >
+                    <Route index element={<QuizManagement />} />
                 </Route>
 
                 <Route

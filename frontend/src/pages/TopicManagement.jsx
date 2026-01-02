@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem, Snackbar, Alert } from '@mui/material';
 
 function TopicManagement() {
     const { courseId, subjectId } = useParams();
@@ -16,6 +17,13 @@ function TopicManagement() {
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Quiz Generation State
+    const [quizDialogOpen, setQuizDialogOpen] = useState(false);
+    const [selectedTopicId, setSelectedTopicId] = useState(null);
+    const [difficulty, setDifficulty] = useState('Easy');
+    const [quizSuccessMsg, setQuizSuccessMsg] = useState('');
+    const [generatingQuiz, setGeneratingQuiz] = useState(false);
 
     useEffect(() => {
         fetchCourse();
@@ -185,6 +193,40 @@ function TopicManagement() {
         }
     };
 
+    const handleOpenQuizDialog = (topicId) => {
+        setSelectedTopicId(topicId);
+        setDifficulty('Easy');
+        setQuizDialogOpen(true);
+    };
+
+    const handleGenerateQuiz = async () => {
+        setGeneratingQuiz(true);
+        try {
+            const response = await fetch('http://localhost:8080/api/instructor/quizzes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authService.getToken()}`
+                },
+                body: JSON.stringify({
+                    topicId: selectedTopicId,
+                    difficulty: difficulty
+                })
+            });
+
+            if (response.ok) {
+                setQuizSuccessMsg('Quiz generated successfully!');
+                setQuizDialogOpen(false);
+            } else {
+                setError('Failed to generate quiz');
+            }
+        } catch (err) {
+            setError('Error generating quiz');
+        } finally {
+            setGeneratingQuiz(false);
+        }
+    };
+
     return (
         <div className="content-body">
             <div className="breadcrumb">
@@ -345,12 +387,19 @@ function TopicManagement() {
                                         ) : '-'}
                                     </td>
                                     <td>
-                                        <div className="table-actions">
+                                        <div className="table-actions" style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                                             <button
                                                 className="btn btn-small btn-primary"
                                                 onClick={() => handleEdit(topic)}
                                             >
                                                 Edit
+                                            </button>
+                                            <button
+                                                className="btn btn-small btn-secondary"
+                                                onClick={() => handleOpenQuizDialog(topic.id)}
+                                                style={{ backgroundColor: '#9c27b0', color: 'white' }}
+                                            >
+                                                Generate Quiz
                                             </button>
                                             <button
                                                 className="btn btn-small btn-danger"
@@ -366,6 +415,42 @@ function TopicManagement() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Quiz Difficulty Dialog */}
+            <Dialog open={quizDialogOpen} onClose={() => setQuizDialogOpen(false)}>
+                <DialogTitle>Generate Quiz</DialogTitle>
+                <DialogContent sx={{ width: '300px', pt: 2 }}>
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel>Difficulty Level</InputLabel>
+                        <Select
+                            value={difficulty}
+                            label="Difficulty Level"
+                            onChange={(e) => setDifficulty(e.target.value)}
+                        >
+                            <MenuItem value="Easy">Easy</MenuItem>
+                            <MenuItem value="Medium">Medium</MenuItem>
+                            <MenuItem value="Hard">Hard</MenuItem>
+                        </Select>
+                    </FormControl>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setQuizDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleGenerateQuiz} variant="contained" disabled={generatingQuiz}>
+                        {generatingQuiz ? 'Generating...' : 'Generate'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Snackbar
+                open={!!quizSuccessMsg}
+                autoHideDuration={6000}
+                onClose={() => setQuizSuccessMsg('')}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setQuizSuccessMsg('')} severity="success" sx={{ width: '100%' }}>
+                    {quizSuccessMsg}
+                </Alert>
+            </Snackbar>
         </div>
     );
 }
