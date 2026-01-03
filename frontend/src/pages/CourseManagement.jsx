@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
+import CourseList from '../components/CourseList';
 
 function CourseManagement() {
     const navigate = useNavigate();
@@ -95,6 +96,7 @@ function CourseManagement() {
             difficultyLevel: course.difficultyLevel
         });
         setEditingId(course.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDelete = async (id) => {
@@ -186,58 +188,15 @@ function CourseManagement() {
                 </form>
             </div>
 
-            <div className="table-container">
-                <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>All Courses</h3>
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Difficulty</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {courses.length === 0 ? (
-                            <tr>
-                                <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>
-                                    No courses found
-                                </td>
-                            </tr>
-                        ) : (
-                            courses.map(course => (
-                                <tr key={course.id}>
-                                    <td>{course.title}</td>
-                                    <td>{course.difficultyLevel}</td>
-                                    <td>
-                                        <div className="table-actions">
-                                            <button
-                                                className="btn btn-small btn-primary"
-                                                onClick={() => handleEdit(course)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="btn btn-small btn-danger"
-                                                onClick={() => handleDelete(course.id)}
-                                            >
-                                                Delete
-                                            </button>
-                                            <button
-                                                className="btn btn-small btn-success"
-                                                onClick={() => handleManageSubjects(course.id)}
-                                            >
-                                                Manage Subjects
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <CourseList
+                courses={courses}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onManageSubjects={handleManageSubjects}
+            />
         </div>
     );
 }
 
 export default CourseManagement;
+
