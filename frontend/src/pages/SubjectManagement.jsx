@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
+import '../components/SubjectCard.css';
 
 function SubjectManagement() {
     const { courseId } = useParams();
@@ -197,55 +198,60 @@ function SubjectManagement() {
                 </form>
             </div>
 
-            <div className="table-container">
-                <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>Subjects for {course?.title}</h3>
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {subjects.length === 0 ? (
-                            <tr>
-                                <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>
-                                    No subjects found
-                                </td>
-                            </tr>
-                        ) : (
-                            subjects.map(subject => (
-                                <tr key={subject.id}>
-                                    <td>{subject.name}</td>
-                                    <td>{subject.description}</td>
-                                    <td>
-                                        <div className="table-actions">
-                                            <button
-                                                className="btn btn-small btn-primary"
-                                                onClick={() => handleEdit(subject)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="btn btn-small btn-danger"
-                                                onClick={() => handleDelete(subject.id)}
-                                            >
-                                                Delete
-                                            </button>
-                                            <button
-                                                className="btn btn-small btn-success"
-                                                onClick={() => handleManageTopics(subject.id)}
-                                            >
-                                                Manage Topics
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+            <div style={{ marginTop: '24px' }}>
+                <h3 style={{ fontSize: '18px', marginBottom: '20px', color: '#2c3e50' }}>Subjects for {course?.title}</h3>
+                {subjects.length === 0 ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '60px 20px',
+                        background: '#f8f9fa',
+                        borderRadius: '12px',
+                        color: '#7f8c8d'
+                    }}>
+                        <p style={{ fontSize: '16px', margin: 0 }}>No subjects found. Create your first subject above!</p>
+                    </div>
+                ) : (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                        gap: '20px'
+                    }}>
+                        {subjects.map(subject => (
+                            <div key={subject.id} className="subject-card">
+                                <div className="subject-card-header"></div>
+                                <div className="subject-card-body">
+                                    <h4 className="subject-card-title">{subject.name}</h4>
+                                    <p className="subject-card-description">
+                                        {subject.description || 'No description provided'}
+                                    </p>
+                                </div>
+                                <div className="subject-card-footer">
+                                    <button
+                                        className="subject-card-btn"
+                                        onClick={() => handleEdit(subject)}
+                                        title="Edit Subject"
+                                    >
+                                        ✏️ Edit
+                                    </button>
+                                    <button
+                                        className="subject-card-btn"
+                                        onClick={() => handleDelete(subject.id)}
+                                        title="Delete Subject"
+                                    >
+                                        🗑️ Delete
+                                    </button>
+                                    <button
+                                        className="subject-card-btn btn-primary-action"
+                                        onClick={() => handleManageTopics(subject.id)}
+                                        title="Manage Topics"
+                                    >
+                                        📚 Manage Topics
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
