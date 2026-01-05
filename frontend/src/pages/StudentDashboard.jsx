@@ -7,7 +7,7 @@ import ProgressCard from '../components/ProgressCard';
 import TopicDetailModal from '../components/TopicDetailModal';
 import QuizTaker from '../components/QuizTaker';
 import QuizResult from '../components/QuizResult';
-import { quizService } from '../services/quizService';
+import { studentQuizService } from '../services/studentQuizService';
 
 function StudentDashboard() {
     const navigate = useNavigate();
@@ -21,6 +21,7 @@ function StudentDashboard() {
     const [error, setError] = useState(null);
 
     const user = authService.getCurrentUser()?.user || authService.getCurrentUser();
+    const studentId = user?.userId || user?.id || user?.userId;
 
     useEffect(() => {
         if (activeMenu === 'Dashboard') {
@@ -63,18 +64,36 @@ function StudentDashboard() {
 
     const handleStartQuiz = async (topicId) => {
         try {
-            const quiz = await quizService.getAdaptiveQuiz(topicId);
-            setCurrentQuiz(quiz);
+            setLoading(true);
+            const difficulty = dashboardData?.currentDifficulty || 'EASY';
+            const resp = await studentQuizService.generateQuiz(studentId, { topicId, difficulty });
+            const mapped = {
+                id: resp.quiz.id,
+                title: `Adaptive Quiz - ${resp.quiz.topic?.title || 'Topic'}`,
+                timeLimit: 15,
+                questions: resp.questions.map(q => ({
+                    id: q.id,
+                    questionText: q.question,
+                    optionA: q.optionA,
+                    optionB: q.optionB,
+                    optionC: q.optionC,
+                    optionD: q.optionD
+                }))
+            };
+            setCurrentQuiz(mapped);
             setShowTopicModal(false);
         } catch (err) {
             console.error('Error loading quiz:', err);
             alert('Failed to load quiz. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleQuizSubmit = async (submission) => {
         try {
-            const result = await quizService.submitQuiz(submission);
+            setLoading(true);
+            const result = await studentQuizService.submitQuiz(studentId, submission.quizId, submission);
             setQuizResult(result);
             setCurrentQuiz(null);
             // Refresh dashboard data
@@ -82,6 +101,8 @@ function StudentDashboard() {
         } catch (err) {
             console.error('Error submitting quiz:', err);
             alert('Failed to submit quiz. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -117,6 +138,10 @@ function StudentDashboard() {
         {
             name: 'Profile',
             icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+        },
+        {
+            name: 'Performance',
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18" /><polyline points="3 13 9 7 13 11 21 3" /></svg>
         },
     ];
 
@@ -166,7 +191,18 @@ function StudentDashboard() {
                         <div
                             key={item.name}
                             className={`sidebar-item ${activeMenu === item.name ? 'active' : ''}`}
-                            onClick={() => setActiveMenu(item.name)}
+                            onClick={() => {
+                                setActiveMenu(item.name);
+                                if (item.name === 'Profile') {
+                                    navigate('/student-dashboard/profile');
+                                } else if (item.name === 'My Courses') {
+                                    navigate('/student-dashboard/my-courses');
+                                } else if (item.name === 'AI Quiz') {
+                                    navigate('/student-dashboard/ai-quiz');
+                                } else if (item.name === 'Performance') {
+                                    navigate('/student-dashboard/performance');
+                                }
+                            }}
                         >
                             <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
                             {item.name}

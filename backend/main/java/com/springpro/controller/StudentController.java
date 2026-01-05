@@ -15,6 +15,9 @@ public class StudentController {
     @Autowired
     private StudentService service;
 
+    @Autowired
+    private com.springpro.repository.CourseRepository courseRepository;
+
     @PostMapping
     public Student createStudent(@RequestBody Student student) {
         return service.saveStudent(student);
@@ -23,6 +26,20 @@ public class StudentController {
     @GetMapping
     public List<Student> getAllStudents() {
         return service.getAllStudents();
+    }
+
+    @GetMapping("/{id}")
+    public Student getStudentById(@PathVariable Long id) {
+        return service.getAllStudents().stream()
+                .filter(s -> s.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+    }
+
+    // For now return all courses as "enrolled" for the student (placeholder until enrollment implemented)
+    @GetMapping("/{id}/courses")
+    public List<com.springpro.entity.Course> getEnrolledCourses(@PathVariable Long id) {
+        return courseRepository.findAll();
     }
 
     @PutMapping("/{id}")

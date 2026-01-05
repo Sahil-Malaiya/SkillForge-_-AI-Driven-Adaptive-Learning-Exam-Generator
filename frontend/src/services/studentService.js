@@ -79,4 +79,22 @@ export const studentService = {
             throw error;
         }
     }
+,
+
+    getEnrolledCourses: async (studentId) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/students/${studentId}/courses`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader()
+                }
+            });
+            if (!response.ok) throw new Error('Failed to fetch enrolled courses');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching enrolled courses:', error);
+            throw error;
+        }
+    }
 };

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, Typography, Grid, Chip, Container, CircularProgress, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { authService } from '../services/authService';
+import { warnIfStudentCallingInstructorApi } from '../services/devApiGuard';
 
 const QuizManagement = () => {
     const [quizzes, setQuizzes] = useState([]);
@@ -8,6 +10,18 @@ const QuizManagement = () => {
     const [error, setError] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [selectedQuiz, setSelectedQuiz] = useState(null);
+    const navigate = useNavigate();
+    const user = authService.getCurrentUser();
+    const role = user?.role || user?.user?.role || user?.userRole;
+    const isInstructor = role === 'INSTRUCTOR';
+
+    useEffect(() => {
+        const user = authService.getCurrentUser();
+        const role = user?.role || user?.user?.role || user?.userRole;
+        if (role !== 'INSTRUCTOR') {
+            navigate('/student-dashboard');
+        }
+    }, [navigate]);
 
     const handleViewQuestions = (quiz) => {
         setSelectedQuiz(quiz);
@@ -15,12 +29,15 @@ const QuizManagement = () => {
     };
 
     useEffect(() => {
+        if (!isInstructor) return;
         fetchQuizzes();
-    }, []);
+    }, [isInstructor]);
 
     const fetchQuizzes = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/instructor/quizzes', {
+            const url = 'http://localhost:8080/api/instructor/quizzes';
+            warnIfStudentCallingInstructorApi(url);
+            const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${authService.getToken()}`
                 }

@@ -22,6 +22,9 @@ public class Student {
         this.email = email;
     }
 
+    public Student(Long id) {   // 👈 ADD THIS
+        this.id = id;
+    }
     public Long getId() {
         return id;
     }

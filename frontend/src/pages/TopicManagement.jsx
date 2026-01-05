@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem, Snackbar, Alert } from '@mui/material';
+import { warnIfStudentCallingInstructorApi } from '../services/devApiGuard';
 
 function TopicManagement() {
     const { courseId, subjectId } = useParams();
+    const navigate = useNavigate();
     const [course, setCourse] = useState(null);
     const [subject, setSubject] = useState(null);
     const [topics, setTopics] = useState([]);
@@ -21,6 +23,9 @@ function TopicManagement() {
     // Quiz Generation State
     const [quizDialogOpen, setQuizDialogOpen] = useState(false);
     const [selectedTopicId, setSelectedTopicId] = useState(null);
+    const user = authService.getCurrentUser();
+    const role = user?.role || user?.user?.role || user?.userRole;
+    const isInstructor = role === 'INSTRUCTOR';
     const [difficulty, setDifficulty] = useState('Easy');
     const [quizSuccessMsg, setQuizSuccessMsg] = useState('');
     const [generatingQuiz, setGeneratingQuiz] = useState(false);
@@ -29,7 +34,11 @@ function TopicManagement() {
         fetchCourse();
         fetchSubject();
         fetchTopics();
-    }, [courseId, subjectId]);
+        if (!isInstructor) {
+            navigate('/student-dashboard');
+            return;
+        }
+    }, [courseId, subjectId, isInstructor, navigate]);
 
     const fetchCourse = async () => {
         try {
@@ -194,6 +203,7 @@ function TopicManagement() {
     };
 
     const handleOpenQuizDialog = (topicId) => {
+        if (!isInstructor) return;
         setSelectedTopicId(topicId);
         setDifficulty('Easy');
         setQuizDialogOpen(true);
@@ -202,7 +212,9 @@ function TopicManagement() {
     const handleGenerateQuiz = async () => {
         setGeneratingQuiz(true);
         try {
-            const response = await fetch('http://localhost:8080/api/instructor/quizzes', {
+            const url = 'http://localhost:8080/api/instructor/quizzes';
+            warnIfStudentCallingInstructorApi(url);
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -396,10 +408,12 @@ function TopicManagement() {
                                             </button>
                                             <button
                                                 className="btn btn-small btn-secondary"
-                                                onClick={() => handleOpenQuizDialog(topic.id)}
+                                                onClick={() => isInstructor ? handleOpenQuizDialog(topic.id) : null}
+                                                disabled={!isInstructor}
+                                                title={!isInstructor ? 'Instructor only' : ''}
                                                 style={{ backgroundColor: '#9c27b0', color: 'white' }}
                                             >
-                                                Generate Quiz
+                                                {isInstructor ? 'Generate Quiz' : 'Instructor Only'}
                                             </button>
                                             <button
                                                 className="btn btn-small btn-danger"
@@ -435,8 +449,8 @@ function TopicManagement() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setQuizDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleGenerateQuiz} variant="contained" disabled={generatingQuiz}>
-                        {generatingQuiz ? 'Generating...' : 'Generate'}
+                    <Button onClick={handleGenerateQuiz} variant="contained" disabled={generatingQuiz || !isInstructor}>
+                        {generatingQuiz ? 'Generating...' : (isInstructor ? 'Generate' : 'Not allowed')}
                     </Button>
                 </DialogActions>
             </Dialog>
