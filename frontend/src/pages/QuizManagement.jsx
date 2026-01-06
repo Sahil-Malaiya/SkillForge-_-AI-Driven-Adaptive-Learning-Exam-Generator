@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, Typography, Grid, Chip, Container, CircularProgress, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Card, CardContent, Typography, Grid, Chip, Container, CircularProgress, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, TextField, Select, MenuItem, FormControl, InputLabel, IconButton } from '@mui/material';
 import { authService } from '../services/authService';
 import { warnIfStudentCallingInstructorApi } from '../services/devApiGuard';
 
@@ -10,6 +10,19 @@ const QuizManagement = () => {
     const [error, setError] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [selectedQuiz, setSelectedQuiz] = useState(null);
+    const [questions, setQuestions] = useState([]);
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+    const [questionFormOpen, setQuestionFormOpen] = useState(false);
+    const [editingQuestion, setEditingQuestion] = useState(null);
+    const [questionForm, setQuestionForm] = useState({
+        question: '',
+        optionA: '',
+        optionB: '',
+        optionC: '',
+        optionD: '',
+        correctAnswer: 'A'
+    });
     const navigate = useNavigate();
     const user = authService.getCurrentUser();
     const role = user?.role || user?.user?.role || user?.userRole;
@@ -23,9 +36,29 @@ const QuizManagement = () => {
         }
     }, [navigate]);
 
-    const handleViewQuestions = (quiz) => {
+    const handleViewQuestions = async (quiz) => {
         setSelectedQuiz(quiz);
         setOpenDialog(true);
+        setLoadingQuestions(true);
+        try {
+            const url = `http://localhost:8080/api/instructor/quizzes/${quiz.id}/questions`;
+            warnIfStudentCallingInstructorApi(url);
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${authService.getToken()}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setQuestions(data);
+            } else {
+                setSnackbar({ open: true, message: 'Failed to fetch questions', severity: 'error' });
+            }
+        } catch (err) {
+            setSnackbar({ open: true, message: 'Error fetching questions', severity: 'error' });
+        } finally {
+            setLoadingQuestions(false);
+        }
     };
 
     useEffect(() => {
@@ -52,6 +85,113 @@ const QuizManagement = () => {
             setError('Error connecting to server');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this quiz?')) {
+            return;
+        }
+        try {
+            const url = `http://localhost:8080/api/instructor/quizzes/${id}`;
+            warnIfStudentCallingInstructorApi(url);
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authService.getToken()}`
+                }
+            });
+            if (response.ok) {
+                setQuizzes(quizzes.filter(quiz => quiz.id !== id));
+                setSnackbar({ open: true, message: 'Quiz deleted successfully!', severity: 'success' });
+            } else {
+                const errText = await response.text();
+                setSnackbar({ open: true, message: `Failed to delete quiz: ${errText}`, severity: 'error' });
+            }
+        } catch (err) {
+            setSnackbar({ open: true, message: `Error deleting quiz: ${err.message}`, severity: 'error' });
+        }
+    };
+
+    const handleAddQuestion = () => {
+        setEditingQuestion(null);
+        setQuestionForm({
+            question: '',
+            optionA: '',
+            optionB: '',
+            optionC: '',
+            optionD: '',
+            correctAnswer: 'A'
+        });
+        setQuestionFormOpen(true);
+    };
+
+    const handleEditQuestion = (question) => {
+        setEditingQuestion(question);
+        setQuestionForm({
+            question: question.question,
+            optionA: question.optionA,
+            optionB: question.optionB,
+            optionC: question.optionC,
+            optionD: question.optionD,
+            correctAnswer: question.correctAnswer
+        });
+        setQuestionFormOpen(true);
+    };
+
+    const handleDeleteQuestion = async (questionId) => {
+        if (!window.confirm('Are you sure you want to delete this question?')) {
+            return;
+        }
+        try {
+            const url = `http://localhost:8080/api/instructor/quizzes/questions/${questionId}`;
+            warnIfStudentCallingInstructorApi(url);
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authService.getToken()}`
+                }
+            });
+            if (response.ok) {
+                setQuestions(questions.filter(q => q.id !== questionId));
+                setSnackbar({ open: true, message: 'Question deleted successfully!', severity: 'success' });
+            } else {
+                setSnackbar({ open: true, message: 'Failed to delete question', severity: 'error' });
+            }
+        } catch (err) {
+            setSnackbar({ open: true, message: 'Error deleting question', severity: 'error' });
+        }
+    };
+
+    const handleSaveQuestion = async () => {
+        try {
+            const url = editingQuestion
+                ? `http://localhost:8080/api/instructor/quizzes/questions/${editingQuestion.id}`
+                : `http://localhost:8080/api/instructor/quizzes/${selectedQuiz.id}/questions`;
+            warnIfStudentCallingInstructorApi(url);
+            const response = await fetch(url, {
+                method: editingQuestion ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authService.getToken()}`
+                },
+                body: JSON.stringify(questionForm)
+            });
+            if (response.ok) {
+                const savedQuestion = await response.json();
+                if (editingQuestion) {
+                    setQuestions(questions.map(q => q.id === savedQuestion.id ? savedQuestion : q));
+                    setSnackbar({ open: true, message: 'Question updated successfully!', severity: 'success' });
+                } else {
+                    setQuestions([...questions, savedQuestion]);
+                    setSnackbar({ open: true, message: 'Question added successfully!', severity: 'success' });
+                }
+                setQuestionFormOpen(false);
+            } else {
+                setSnackbar({ open: true, message: 'Failed to save question', severity: 'error' });
+            }
+        } catch (err) {
+            setSnackbar({ open: true, message: 'Error saving question', severity: 'error' });
         }
     };
 
@@ -90,14 +230,22 @@ const QuizManagement = () => {
                                             {new Date(quiz.createdAt).toLocaleDateString()}
                                         </Typography>
                                     </div>
-                                    <Button
-                                        variant="contained"
-                                        fullWidth
-                                        sx={{ mt: 2 }}
-                                        onClick={() => handleViewQuestions(quiz)}
-                                    >
-                                        View Questions
-                                    </Button>
+                                    <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                                        <Button
+                                            variant="contained"
+                                            fullWidth
+                                            onClick={() => handleViewQuestions(quiz)}
+                                        >
+                                            View Questions
+                                        </Button>
+                                        <Button
+                                            variant="contained"
+                                            color="error"
+                                            onClick={() => handleDelete(quiz.id)}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </Grid>
@@ -105,18 +253,167 @@ const QuizManagement = () => {
                 </Grid>
             )}
 
-            {/* Placeholder Dialog for Questions */}
-            <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-                <DialogTitle>Quiz Questions</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        No questions have been generated for this quiz yet.
-                        <br />
-                        (AI Question Generation will be implemented in the next phase)
+            {/* Questions Dialog */}
+            <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+                <DialogTitle>
+                    Quiz Questions - {selectedQuiz?.topic?.title}
+                    <Typography variant="caption" display="block" color="textSecondary">
+                        Difficulty: {selectedQuiz?.difficulty}
                     </Typography>
+                </DialogTitle>
+                <DialogContent>
+                    {loadingQuestions ? (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+                            <CircularProgress />
+                        </div>
+                    ) : questions.length === 0 ? (
+                        <Alert severity="info">
+                            No questions have been generated for this quiz yet.
+                        </Alert>
+                    ) : (
+                        <div style={{ marginTop: '16px' }}>
+                            {questions.map((q, index) => (
+                                <Card key={q.id} sx={{ mb: 2, p: 2 }}>
+                                    <Typography variant="h6" gutterBottom>
+                                        Question {index + 1}
+                                    </Typography>
+                                    <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
+                                        {q.question}
+                                    </Typography>
+                                    <div style={{ marginLeft: '16px' }}>
+                                        {['A', 'B', 'C', 'D'].map((option) => {
+                                            const optionText = q[`option${option}`];
+                                            // Handle both "A" and full answer text formats
+                                            const correctAns = (q.correctAnswer || '').trim().toUpperCase();
+                                            const isCorrect = correctAns === option || correctAns.startsWith(option + '.') || correctAns.startsWith(option + ')');
+                                            return (
+                                                <Typography
+                                                    key={option}
+                                                    variant="body2"
+                                                    sx={{
+                                                        mb: 1,
+                                                        p: 1,
+                                                        borderRadius: 1,
+                                                        backgroundColor: isCorrect ? '#e8f5e9' : 'transparent',
+                                                        fontWeight: isCorrect ? 600 : 400,
+                                                        border: isCorrect ? '2px solid #4caf50' : '1px solid #e0e0e0'
+                                                    }}
+                                                >
+                                                    <strong>{option}.</strong> {optionText}
+                                                    {isCorrect && (
+                                                        <Chip
+                                                            label="Correct"
+                                                            size="small"
+                                                            color="success"
+                                                            sx={{ ml: 2, height: '20px' }}
+                                                        />
+                                                    )}
+                                                </Typography>
+                                            );
+                                        })}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px', justifyContent: 'flex-end' }}>
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            onClick={() => handleEditQuestion(q)}
+                                        >
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            color="error"
+                                            onClick={() => handleDeleteQuestion(q.id)}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
                 </DialogContent>
                 <DialogActions>
+                    <Button onClick={handleAddQuestion} variant="contained" color="primary">
+                        Add Question
+                    </Button>
                     <Button onClick={() => setOpenDialog(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Snackbar for notifications */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+
+            {/* Question Form Dialog */}
+            <Dialog open={questionFormOpen} onClose={() => setQuestionFormOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add Question'}</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        label="Question"
+                        fullWidth
+                        multiline
+                        rows={3}
+                        value={questionForm.question}
+                        onChange={(e) => setQuestionForm({ ...questionForm, question: e.target.value })}
+                        sx={{ mt: 2, mb: 2 }}
+                    />
+                    <TextField
+                        label="Option A"
+                        fullWidth
+                        value={questionForm.optionA}
+                        onChange={(e) => setQuestionForm({ ...questionForm, optionA: e.target.value })}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField
+                        label="Option B"
+                        fullWidth
+                        value={questionForm.optionB}
+                        onChange={(e) => setQuestionForm({ ...questionForm, optionB: e.target.value })}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField
+                        label="Option C"
+                        fullWidth
+                        value={questionForm.optionC}
+                        onChange={(e) => setQuestionForm({ ...questionForm, optionC: e.target.value })}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField
+                        label="Option D"
+                        fullWidth
+                        value={questionForm.optionD}
+                        onChange={(e) => setQuestionForm({ ...questionForm, optionD: e.target.value })}
+                        sx={{ mb: 2 }}
+                    />
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                        <InputLabel>Correct Answer</InputLabel>
+                        <Select
+                            value={questionForm.correctAnswer}
+                            label="Correct Answer"
+                            onChange={(e) => setQuestionForm({ ...questionForm, correctAnswer: e.target.value })}
+                        >
+                            <MenuItem value="A">A</MenuItem>
+                            <MenuItem value="B">B</MenuItem>
+                            <MenuItem value="C">C</MenuItem>
+                            <MenuItem value="D">D</MenuItem>
+                        </Select>
+                    </FormControl>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setQuestionFormOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSaveQuestion} variant="contained" color="primary">
+                        {editingQuestion ? 'Update' : 'Add'}
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Container>

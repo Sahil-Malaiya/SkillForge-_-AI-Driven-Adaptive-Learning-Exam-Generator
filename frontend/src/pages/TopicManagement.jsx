@@ -230,7 +230,8 @@ function TopicManagement() {
                 setQuizSuccessMsg('Quiz generated successfully!');
                 setQuizDialogOpen(false);
             } else {
-                setError('Failed to generate quiz');
+                const errText = await response.text();
+                setError('Failed to generate quiz: ' + errText);
             }
         } catch (err) {
             setError('Error generating quiz');
