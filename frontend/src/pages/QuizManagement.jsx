@@ -283,9 +283,13 @@ const QuizManagement = () => {
                                     <div style={{ marginLeft: '16px' }}>
                                         {['A', 'B', 'C', 'D'].map((option) => {
                                             const optionText = q[`option${option}`];
-                                            // Handle both "A" and full answer text formats
+                                            // Handle both "A" (letter) and "The choice text" (full text) formats
                                             const correctAns = (q.correctAnswer || '').trim().toUpperCase();
-                                            const isCorrect = correctAns === option || correctAns.startsWith(option + '.') || correctAns.startsWith(option + ')');
+                                            const normalizedOptionText = (optionText || '').trim().toUpperCase();
+                                            const isCorrect = correctAns === option ||
+                                                correctAns.startsWith(option + '.') ||
+                                                correctAns.startsWith(option + ')') ||
+                                                correctAns === normalizedOptionText;
                                             return (
                                                 <Typography
                                                     key={option}
