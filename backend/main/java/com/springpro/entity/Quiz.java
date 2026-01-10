@@ -10,22 +10,23 @@ public class Quiz {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String quizId; // Unique identifier for the quiz (e.g., UUID)
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "topic_id", nullable = false)
     private Topic topic;
 
     private String difficulty; // Easy, Medium, Hard
 
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<QuizQuestion> questions;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Quiz() {
     }
 
-    public Quiz(Long id, String quizId, Topic topic, String difficulty, LocalDateTime createdAt) {
+    public Quiz(Long id, Topic topic, String difficulty, LocalDateTime createdAt) {
         this.id = id;
-        this.quizId = quizId;
         this.topic = topic;
         this.difficulty = difficulty;
         this.createdAt = createdAt;
@@ -37,14 +38,6 @@ public class Quiz {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getQuizId() {
-        return quizId;
-    }
-
-    public void setQuizId(String quizId) {
-        this.quizId = quizId;
     }
 
     public Topic getTopic() {
@@ -69,5 +62,13 @@ public class Quiz {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public java.util.List<QuizQuestion> getQuestions() {
+        return questions;
+    }
+
+    public void setQuestions(java.util.List<QuizQuestion> questions) {
+        this.questions = questions;
     }
 }

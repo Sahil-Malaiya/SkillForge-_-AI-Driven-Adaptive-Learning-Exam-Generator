@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem, Snackbar, Alert } from '@mui/material';
+import { warnIfStudentCallingInstructorApi } from '../services/devApiGuard';
 
 function TopicManagement() {
     const { courseId, subjectId } = useParams();
+    const navigate = useNavigate();
     const [course, setCourse] = useState(null);
     const [subject, setSubject] = useState(null);
     const [topics, setTopics] = useState([]);
@@ -21,7 +23,11 @@ function TopicManagement() {
     // Quiz Generation State
     const [quizDialogOpen, setQuizDialogOpen] = useState(false);
     const [selectedTopicId, setSelectedTopicId] = useState(null);
+    const user = authService.getCurrentUser();
+    const role = user?.role || user?.user?.role || user?.userRole;
+    const isInstructor = role === 'INSTRUCTOR';
     const [difficulty, setDifficulty] = useState('Easy');
+    const [questionCount, setQuestionCount] = useState(5);
     const [quizSuccessMsg, setQuizSuccessMsg] = useState('');
     const [generatingQuiz, setGeneratingQuiz] = useState(false);
 
@@ -29,7 +35,11 @@ function TopicManagement() {
         fetchCourse();
         fetchSubject();
         fetchTopics();
-    }, [courseId, subjectId]);
+        if (!isInstructor) {
+            navigate('/student-dashboard');
+            return;
+        }
+    }, [courseId, subjectId, isInstructor, navigate]);
 
     const fetchCourse = async () => {
         try {
@@ -194,6 +204,7 @@ function TopicManagement() {
     };
 
     const handleOpenQuizDialog = (topicId) => {
+        if (!isInstructor) return;
         setSelectedTopicId(topicId);
         setDifficulty('Easy');
         setQuizDialogOpen(true);
@@ -201,8 +212,12 @@ function TopicManagement() {
 
     const handleGenerateQuiz = async () => {
         setGeneratingQuiz(true);
+        setError(''); // Clear previous errors
         try {
-            const response = await fetch('http://localhost:8080/api/instructor/quizzes', {
+            const url = 'http://localhost:8080/api/instructor/quizzes';
+            warnIfStudentCallingInstructorApi(url);
+            console.log('Sending quiz generation request for topic:', selectedTopicId);
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -210,15 +225,18 @@ function TopicManagement() {
                 },
                 body: JSON.stringify({
                     topicId: selectedTopicId,
-                    difficulty: difficulty
+                    difficulty: difficulty,
+                    count: questionCount
                 })
             });
 
             if (response.ok) {
+                console.log('Quiz generation successful, setting success message');
                 setQuizSuccessMsg('Quiz generated successfully!');
                 setQuizDialogOpen(false);
             } else {
-                setError('Failed to generate quiz');
+                const errText = await response.text();
+                setError('Failed to generate quiz: ' + errText);
             }
         } catch (err) {
             setError('Error generating quiz');
@@ -396,10 +414,12 @@ function TopicManagement() {
                                             </button>
                                             <button
                                                 className="btn btn-small btn-secondary"
-                                                onClick={() => handleOpenQuizDialog(topic.id)}
+                                                onClick={() => isInstructor ? handleOpenQuizDialog(topic.id) : null}
+                                                disabled={!isInstructor}
+                                                title={!isInstructor ? 'Instructor only' : ''}
                                                 style={{ backgroundColor: '#9c27b0', color: 'white' }}
                                             >
-                                                Generate Quiz
+                                                {isInstructor ? 'Generate Quiz' : 'Instructor Only'}
                                             </button>
                                             <button
                                                 className="btn btn-small btn-danger"
@@ -432,11 +452,24 @@ function TopicManagement() {
                             <MenuItem value="Hard">Hard</MenuItem>
                         </Select>
                     </FormControl>
+
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel shrink>Number of Questions (1-10)</InputLabel>
+                        <Select
+                            value={questionCount}
+                            label="Number of Questions"
+                            onChange={(e) => setQuestionCount(e.target.value)}
+                        >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                <MenuItem key={n} value={n}>{n}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setQuizDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleGenerateQuiz} variant="contained" disabled={generatingQuiz}>
-                        {generatingQuiz ? 'Generating...' : 'Generate'}
+                    <Button onClick={handleGenerateQuiz} variant="contained" disabled={generatingQuiz || !isInstructor}>
+                        {generatingQuiz ? 'Generating...' : (isInstructor ? 'Generate' : 'Not allowed')}
                     </Button>
                 </DialogActions>
             </Dialog>
