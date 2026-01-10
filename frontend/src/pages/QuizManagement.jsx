@@ -23,6 +23,11 @@ const QuizManagement = () => {
         optionD: '',
         correctAnswer: 'A'
     });
+    const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+    const [students, setStudents] = useState([]);
+    const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+    const [loadingStudents, setLoadingStudents] = useState(false);
+    const [assigning, setAssigning] = useState(false);
     const navigate = useNavigate();
     const user = authService.getCurrentUser();
     const role = user?.role || user?.user?.role || user?.userRole;
@@ -195,6 +200,82 @@ const QuizManagement = () => {
         }
     };
 
+    const handleOpenAssignDialog = async (quiz) => {
+        setSelectedQuiz(quiz);
+        setAssignDialogOpen(true);
+        setLoadingStudents(true);
+        setSelectedStudentIds([]);
+        try {
+            const url = 'http://localhost:8080/api/instructor/quizzes/students';
+            warnIfStudentCallingInstructorApi(url);
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${authService.getToken()}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setStudents(data);
+            } else {
+                setSnackbar({ open: true, message: 'Failed to fetch students', severity: 'error' });
+            }
+        } catch (err) {
+            setSnackbar({ open: true, message: 'Error fetching students', severity: 'error' });
+        } finally {
+            setLoadingStudents(false);
+        }
+    };
+
+    const handleToggleStudent = (studentId) => {
+        setSelectedStudentIds(prev =>
+            prev.includes(studentId)
+                ? prev.filter(id => id !== studentId)
+                : [...prev, studentId]
+        );
+    };
+
+    const handleSelectAllStudents = () => {
+        if (selectedStudentIds.length === students.length) {
+            setSelectedStudentIds([]);
+        } else {
+            setSelectedStudentIds(students.map(s => s.id));
+        }
+    };
+
+    const handleAssignQuiz = async (assignToAll) => {
+        if (!assignToAll && selectedStudentIds.length === 0) {
+            setSnackbar({ open: true, message: 'Please select at least one student', severity: 'warning' });
+            return;
+        }
+
+        setAssigning(true);
+        try {
+            const url = `http://localhost:8080/api/instructor/quizzes/${selectedQuiz.id}/assign`;
+            warnIfStudentCallingInstructorApi(url);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authService.getToken()}`
+                },
+                body: JSON.stringify({
+                    allStudents: assignToAll,
+                    studentIds: assignToAll ? [] : selectedStudentIds
+                })
+            });
+            if (response.ok) {
+                setSnackbar({ open: true, message: 'Quiz assigned successfully!', severity: 'success' });
+                setAssignDialogOpen(false);
+            } else {
+                setSnackbar({ open: true, message: 'Failed to assign quiz', severity: 'error' });
+            }
+        } catch (err) {
+            setSnackbar({ open: true, message: 'Error assigning quiz', severity: 'error' });
+        } finally {
+            setAssigning(false);
+        }
+    };
+
     if (loading) return <Container sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Container>;
     if (error) return <Container sx={{ mt: 4 }}><Alert severity="error">{error}</Alert></Container>;
 
@@ -246,6 +327,14 @@ const QuizManagement = () => {
                                             Delete
                                         </Button>
                                     </div>
+                                    <Button
+                                        variant="outlined"
+                                        fullWidth
+                                        sx={{ mt: 1 }}
+                                        onClick={() => handleOpenAssignDialog(quiz)}
+                                    >
+                                        Assign to Students
+                                    </Button>
                                 </CardContent>
                             </Card>
                         </Grid>
@@ -417,6 +506,80 @@ const QuizManagement = () => {
                     <Button onClick={() => setQuestionFormOpen(false)}>Cancel</Button>
                     <Button onClick={handleSaveQuestion} variant="contained" color="primary">
                         {editingQuestion ? 'Update' : 'Add'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Assign Quiz Dialog */}
+            <Dialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Assign Quiz to Students</DialogTitle>
+                <DialogContent>
+                    <Typography variant="subtitle1" gutterBottom>
+                        Quiz: {selectedQuiz?.topic?.title}
+                    </Typography>
+                    {loadingStudents ? (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+                            <CircularProgress />
+                        </div>
+                    ) : students.length === 0 ? (
+                        <Alert severity="info">No students found.</Alert>
+                    ) : (
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <Typography variant="body2">
+                                    Selected: {selectedStudentIds.length} / {students.length}
+                                </Typography>
+                                <Button size="small" onClick={handleSelectAllStudents}>
+                                    {selectedStudentIds.length === students.length ? 'Deselect All' : 'Select All'}
+                                </Button>
+                            </div>
+                            <Grid container spacing={1}>
+                                {students.map((student) => (
+                                    <Grid item xs={12} key={student.id}>
+                                        <Card
+                                            variant="outlined"
+                                            sx={{
+                                                p: 1,
+                                                cursor: 'pointer',
+                                                backgroundColor: selectedStudentIds.includes(student.id) ? '#e3f2fd' : 'inherit',
+                                                borderColor: selectedStudentIds.includes(student.id) ? '#1976d2' : 'divider'
+                                            }}
+                                            onClick={() => handleToggleStudent(student.id)}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <Typography variant="body1">{student.name}</Typography>
+                                                    <Typography variant="caption" color="textSecondary">{student.email}</Typography>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedStudentIds.includes(student.id)}
+                                                    readOnly
+                                                />
+                                            </div>
+                                        </Card>
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </div>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
+                    <Button
+                        onClick={() => handleAssignQuiz(true)}
+                        disabled={assigning || loadingStudents || students.length === 0}
+                        color="secondary"
+                    >
+                        Assign to All
+                    </Button>
+                    <Button
+                        onClick={() => handleAssignQuiz(false)}
+                        variant="contained"
+                        color="primary"
+                        disabled={assigning || loadingStudents || selectedStudentIds.length === 0}
+                    >
+                        {assigning ? <CircularProgress size={24} /> : 'Assign'}
                     </Button>
                 </DialogActions>
             </Dialog>
