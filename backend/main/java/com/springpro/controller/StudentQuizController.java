@@ -38,13 +38,16 @@ public class StudentQuizController {
     @Autowired
     private StudentQuizAttemptRepository attemptRepository;
 
-    // Generate a quiz for a student (creates Quiz + questions via existing QuizService)
+    // Generate a quiz for a student (creates Quiz + questions via existing
+    // QuizService)
     @PostMapping("/quizzes")
-    public ResponseEntity<Map<String, Object>> generateQuiz(@PathVariable Long studentId, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<Map<String, Object>> generateQuiz(@PathVariable Long studentId,
+            @RequestBody Map<String, Object> payload) {
         Long topicId = Long.valueOf(payload.get("topicId").toString());
         String difficulty = (String) payload.getOrDefault("difficulty", "EASY");
+        int count = payload.containsKey("count") ? Integer.parseInt(payload.get("count").toString()) : 2;
 
-        Quiz quiz = quizService.createQuiz(topicId, difficulty);
+        Quiz quiz = quizService.createQuiz(topicId, difficulty, count);
         List<QuizQuestion> questions = quizQuestionRepository.findByQuizId(quiz.getId());
 
         Map<String, Object> resp = new HashMap<>();
@@ -55,7 +58,8 @@ public class StudentQuizController {
 
     // Submit quiz answers
     @PostMapping("/quizzes/{quizId}/submit")
-    public ResponseEntity<Map<String, Object>> submitQuiz(@PathVariable Long studentId, @PathVariable Long quizId, @RequestBody QuizSubmitRequest submission) {
+    public ResponseEntity<Map<String, Object>> submitQuiz(@PathVariable Long studentId, @PathVariable Long quizId,
+            @RequestBody QuizSubmitRequest submission) {
         // Load quiz and questions
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
         List<QuizQuestion> questions = quizQuestionRepository.findByQuizId(quizId);
@@ -70,7 +74,8 @@ public class StudentQuizController {
         }
 
         // Save attempt
-        Student student = studentRepository.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found"));
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
         StudentQuizAttempt attempt = new StudentQuizAttempt();
         attempt.setStudent(student);
         attempt.setQuiz(quiz);
