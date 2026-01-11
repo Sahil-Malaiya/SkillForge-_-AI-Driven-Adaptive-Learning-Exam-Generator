@@ -14,6 +14,11 @@ function InstructorDashboard() {
 
     const menuItems = [
         {
+            name: 'Home',
+            path: '/instructor',
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 13h8V3H3v10z" /><path d="M13 21h8v-8h-8v8z" /><path d="M13 3v8h8" /></svg>
+        },
+        {
             name: 'Courses',
             path: '/courses',
             icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
@@ -33,6 +38,8 @@ function InstructorDashboard() {
     const isActive = (path) => {
         return location.pathname.startsWith(path);
     };
+
+    const showDashboard = location.pathname === '/instructor-dashboard' || location.pathname === '/instructor';
 
     return (
         <div className="dashboard-layout">
@@ -74,7 +81,7 @@ function InstructorDashboard() {
                 </div>
 
                 {/* This will render the child routes (CourseManagement, StudentManagement, etc.) */}
-                {location.pathname === '/instructor-dashboard' ? (
+                {showDashboard ? (
                     <div className="content-body">
                         <div className="dashboard-cards">
                             <div className="dashboard-card">

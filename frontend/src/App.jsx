@@ -93,6 +93,19 @@ function App() {
                     <Route path="students" element={<StudentManagement />} />
                 </Route>
 
+                {/* Instructor route (alias) with index to show dashboard */}
+                <Route
+                    path="/instructor"
+                    element={
+                        <PrivateRoute>
+                            <InstructorDashboard />
+                        </PrivateRoute>
+                    }
+                >
+                    <Route path="courses" element={<CourseManagement />} />
+                    <Route path="students" element={<StudentManagement />} />
+                </Route>
+
                 {/* Standalone routes for management pages */}
                 <Route
                     path="/courses"
