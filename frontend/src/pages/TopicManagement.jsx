@@ -265,6 +265,18 @@ function TopicManagement() {
                 <div className="alert alert-error">{error}</div>
             )}
 
+            {quizSuccessMsg && (
+                <div className="alert alert-success">
+                    {quizSuccessMsg}
+                    <button
+                        onClick={() => setQuizSuccessMsg('')}
+                        style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
             <div className="form-section">
                 <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>
                     {editingId ? 'Edit Topic' : 'Create Topic'}

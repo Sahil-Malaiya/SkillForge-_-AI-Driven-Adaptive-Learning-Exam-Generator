@@ -1,0 +1,93 @@
+/* TopicCard.css */
+.topic-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e5e7eb;
+}
+
+.topic-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.topic-card-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.topic-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.topic-content-preview {
+    margin-bottom: 16px;
+}
+
+.topic-video-container {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+}
+
+.topic-video-element {
+    width: 100%;
+    display: block;
+    max-height: 200px;
+}
+
+.topic-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+}
+
+.topic-link-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.pdf-btn {
+    background-color: #fce7f3;
+    color: #9d174d;
+}
+
+.pdf-btn:hover {
+    background-color: #fbcfe8;
+}
+
+.external-btn {
+    background-color: #ecfdf5;
+    color: #065f46;
+}
+
+.external-btn:hover {
+    background-color: #d1fae5;
+}
+
+.no-resources {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-style: italic;
+    text-align: center;
+}
