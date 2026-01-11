@@ -1,18 +1,19 @@
 package com.springpro.controller;
 
 import com.springpro.dto.QuizSubmitRequest;
-import com.springpro.entity.Quiz;
 import com.springpro.entity.QuizQuestion;
 import com.springpro.entity.Student;
 import com.springpro.entity.StudentQuizAttempt;
 import com.springpro.repository.QuizQuestionRepository;
-import com.springpro.repository.QuizRepository;
 import com.springpro.repository.StudentQuizAttemptRepository;
 import com.springpro.repository.StudentRepository;
-import com.springpro.service.QuizService;
+import com.springpro.service.StudentQuizService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.springpro.repository.QuizAssignmentRepository;
+import com.springpro.entity.QuizAssignment;
+import java.util.stream.Collectors;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,71 +25,37 @@ import java.util.Map;
 public class StudentQuizController {
 
     @Autowired
-    private QuizService quizService;
-
-    @Autowired
-    private QuizRepository quizRepository;
-
-    @Autowired
     private QuizQuestionRepository quizQuestionRepository;
+
+    @Autowired
+    private StudentQuizService studentQuizService;
 
     @Autowired
     private StudentRepository studentRepository;
 
     @Autowired
     private StudentQuizAttemptRepository attemptRepository;
+    
+    @Autowired
+    private QuizAssignmentRepository quizAssignmentRepository;
 
-    // Generate a quiz for a student (creates Quiz + questions via existing
-    // QuizService)
+    // Start an assigned quiz for a student. Requires existing QuizAssignment.
     @PostMapping("/quizzes")
     public ResponseEntity<Map<String, Object>> generateQuiz(@PathVariable Long studentId,
             @RequestBody Map<String, Object> payload) {
-        Long topicId = Long.valueOf(payload.get("topicId").toString());
-        String difficulty = (String) payload.getOrDefault("difficulty", "EASY");
-        int count = payload.containsKey("count") ? Integer.parseInt(payload.get("count").toString()) : 2;
-
-        Quiz quiz = quizService.createQuiz(topicId, difficulty, count);
-        List<QuizQuestion> questions = quizQuestionRepository.findByQuizId(quiz.getId());
-
-        Map<String, Object> resp = new HashMap<>();
-        resp.put("quiz", quiz);
-        resp.put("questions", questions);
+        if (!payload.containsKey("quizId")) {
+            throw new RuntimeException("Missing quizId in request payload. Students may only start assigned quizzes.");
+        }
+        Long quizId = Long.valueOf(payload.get("quizId").toString());
+        Map<String, Object> resp = studentQuizService.startAssignedQuiz(studentId, quizId);
         return ResponseEntity.ok(resp);
     }
 
-    // Submit quiz answers
+    // Submit quiz answers for an assigned quiz. Enforces assignment check in service layer.
     @PostMapping("/quizzes/{quizId}/submit")
     public ResponseEntity<Map<String, Object>> submitQuiz(@PathVariable Long studentId, @PathVariable Long quizId,
             @RequestBody QuizSubmitRequest submission) {
-        // Load quiz and questions
-        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
-        List<QuizQuestion> questions = quizQuestionRepository.findByQuizId(quizId);
-
-        int total = questions.size();
-        int score = 0;
-        for (QuizQuestion q : questions) {
-            String selected = submission.getAnswers().get(q.getId());
-            if (selected != null && selected.equals(q.getCorrectAnswer())) {
-                score++;
-            }
-        }
-
-        // Save attempt
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        StudentQuizAttempt attempt = new StudentQuizAttempt();
-        attempt.setStudent(student);
-        attempt.setQuiz(quiz);
-        attempt.setScore(score);
-        attempt.setTotalQuestions(total);
-        attempt.setAttemptedAt(java.time.LocalDateTime.now());
-        attemptRepository.save(attempt);
-
-        Map<String, Object> resp = new HashMap<>();
-        resp.put("score", score);
-        resp.put("totalQuestions", total);
-        resp.put("accuracy", total == 0 ? 0 : (score * 100) / total);
-        resp.put("attemptId", attempt.getId());
+        Map<String, Object> resp = studentQuizService.submitAssignedQuiz(studentId, quizId, submission);
         return ResponseEntity.ok(resp);
     }
 
@@ -112,6 +79,39 @@ public class StudentQuizController {
         resp.put("avgScore", avgScore);
         resp.put("accuracy", accuracy);
         resp.put("attempts", attempts);
+        return ResponseEntity.ok(resp);
+    }
+    
+    @GetMapping("/assignments")
+    public ResponseEntity<List<Map<String, Object>>> getAssignments(@PathVariable Long studentId) {
+        List<QuizAssignment> assignments = quizAssignmentRepository.findByStudentId(studentId);
+
+        List<Map<String, Object>> resp = assignments.stream().map(a -> {
+            Map<String, Object> m = new HashMap<>();
+            Long quizId = null;
+            String title = null;
+            String courseTitle = null;
+            int questionCount = 0;
+            if (a.getQuiz() != null) {
+                quizId = a.getQuiz().getId();
+                if (a.getQuiz().getTopic() != null) title = a.getQuiz().getTopic().getTitle();
+                questionCount = quizQuestionRepository.findByQuizId(quizId).size();
+            }
+            if (a.getCourse() != null) {
+                courseTitle = a.getCourse().getTitle();
+            }
+
+            // duration: estimate as number of questions (minutes) — frontend-friendly number
+            Integer duration = questionCount;
+
+            m.put("quizId", quizId);
+            m.put("title", title);
+            m.put("course", courseTitle);
+            m.put("duration", duration);
+            m.put("status", a.getStatus());
+            return m;
+        }).collect(Collectors.toList());
+
         return ResponseEntity.ok(resp);
     }
 }

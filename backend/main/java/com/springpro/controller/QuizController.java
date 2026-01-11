@@ -72,6 +72,11 @@ public class QuizController {
     public ResponseEntity<List<Student>> getAllStudents() {
         return ResponseEntity.ok(quizService.getAllStudents());
     }
+     @GetMapping("/students/1")
+    public ResponseEntity<List<Student>> getAllStudentsbyOne() {
+        return ResponseEntity.ok(quizService.getAllStudents());
+    }
+
 
     @PostMapping("/{quizId}/assign")
     public ResponseEntity<Void> assignQuiz(

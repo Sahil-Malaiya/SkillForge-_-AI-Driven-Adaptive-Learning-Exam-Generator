@@ -8,6 +8,10 @@ import com.springpro.entity.Student;
 import com.springpro.entity.Role;
 import com.springpro.repository.UserRepository;
 import com.springpro.repository.StudentRepository;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -61,7 +65,12 @@ public class AuthenticationService {
                         request.getPassword()));
         var user = repository.findByEmail(request.getEmail())
                 .orElseThrow();
-        var jwtToken = jwtService.generateToken(user);
+                Map<String, Object> claims = new HashMap<>();
+    claims.put("role", user.getRole().name()); // 👈 ADD ROLE HERE
+
+    
+        var jwtToken = jwtService.generateToken(claims, user);
+
         return new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), user.getEmail(), user.getFullName());
     }
 }

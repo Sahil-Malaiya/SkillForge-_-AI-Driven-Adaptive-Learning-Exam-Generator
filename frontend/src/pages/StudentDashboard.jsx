@@ -131,10 +131,7 @@ function StudentDashboard() {
             name: 'My Courses',
             icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
         },
-        {
-            name: 'AI Quiz',
-            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-        },
+        
         {
             name: 'Profile',
             icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
@@ -313,18 +310,7 @@ function StudentDashboard() {
                                 <button className="btn btn-primary">View Courses</button>
                             </div>
 
-                            <div className="dashboard-card">
-                                <h3>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }}>
-                                        <circle cx="12" cy="12" r="10" />
-                                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                                    </svg>
-                                    AI Quiz
-                                </h3>
-                                <p>Take adaptive AI generated quizzes based on your progress.</p>
-                                <button className="btn btn-primary">Start Quiz</button>
-                            </div>
+                            
 
                             <div className="dashboard-card">
                                 <h3>

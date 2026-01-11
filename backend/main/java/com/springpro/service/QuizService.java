@@ -1,5 +1,6 @@
 package com.springpro.service;
 
+import com.springpro.entity.Course;
 import com.springpro.entity.Quiz;
 import com.springpro.entity.QuizAssignment;
 import com.springpro.entity.QuizQuestion;
@@ -150,7 +151,10 @@ public class QuizService {
         List<com.springpro.entity.Student> allStudents = studentRepository.findAll();
         for (com.springpro.entity.Student student : allStudents) {
             if (!quizAssignmentRepository.existsByQuizIdAndStudentId(quizId, student.getId())) {
-                QuizAssignment assignment = new QuizAssignment(quiz, student);
+                // QuizAssignment assignment = new QuizAssignment(quiz, student);
+                Course course = null;
+                QuizAssignment assignment = new QuizAssignment(quiz, student, course);
+
                 quizAssignmentRepository.save(assignment);
             }
         }

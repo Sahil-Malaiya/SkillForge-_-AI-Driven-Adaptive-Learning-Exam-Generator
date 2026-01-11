@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -46,21 +47,25 @@ public class SecurityConfig {
 
             @Bean
             @Order(2)
-            public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-            http
-                    .csrf(AbstractHttpConfigurer::disable)
-                    .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(req -> req.requestMatchers("/auth/**", "/api/admin/**")
-                            .permitAll()
-                            .anyRequest()
-                            .authenticated())
-                    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                    .authenticationProvider(authenticationProvider)
-                    .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+           public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(AbstractHttpConfigurer::disable)
+        .cors(Customizer.withDefaults())
+        .authorizeHttpRequests(req -> req
+            .requestMatchers("/auth/**").permitAll()
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // FIXED
+            // .requestMatchers("/api/instructor/**").hasAuthority("INSTRUCTOR")  // role based access
+             // Protected routes
+                        .requestMatchers("/api/instructor/**").authenticated()
+            // Everything else allowed
+                        .anyRequest().permitAll()
+        )
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authenticationProvider(authenticationProvider)
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-            return http.build();
-        }
-
+    return http.build();
+}
         // Completely bypass Spring Security for static upload resources.
         @Bean
         public WebSecurityCustomizer webSecurityCustomizer() {

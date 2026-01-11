@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "quiz_assignments")
+@Table(name = "quiz_assignments", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "quiz_id", "student_id" })
+})
 public class QuizAssignment {
 
     @Id
@@ -19,22 +21,39 @@ public class QuizAssignment {
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    private LocalDateTime assignedAt = LocalDateTime.now();
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "course_id", nullable = true)
+    private Course course;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AssignmentStatus status = AssignmentStatus.NOT_STARTED;
+
+    @Column(nullable = false)
+    private LocalDateTime assignedAt;
 
     public QuizAssignment() {
+        this.assignedAt = LocalDateTime.now();
+    }
+
+    public QuizAssignment(Quiz quiz, Student student, Course course) {
+        this.quiz = quiz;
+        this.student = student;
+        this.course = course;
+        this.status = AssignmentStatus.NOT_STARTED;
+        this.assignedAt = LocalDateTime.now();
     }
 
     public QuizAssignment(Quiz quiz, Student student) {
         this.quiz = quiz;
         this.student = student;
+        this.assignedAt = LocalDateTime.now();
     }
+
+    // ---------- Getters & Setters ----------
 
     public Long getId() {
         return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public Quiz getQuiz() {
@@ -53,11 +72,23 @@ public class QuizAssignment {
         this.student = student;
     }
 
-    public LocalDateTime getAssignedAt() {
-        return assignedAt;
+    public Course getCourse() {
+        return course;
     }
 
-    public void setAssignedAt(LocalDateTime assignedAt) {
-        this.assignedAt = assignedAt;
+    public void setCourse(Course course) {
+        this.course = course;
+    }
+
+    public AssignmentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AssignmentStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getAssignedAt() {
+        return assignedAt;
     }
 }
