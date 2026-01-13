@@ -199,7 +199,7 @@ function StudentManagement() {
                                             </button>
                                             <button
                                                 className="btn btn-small btn-secondary"
-                                                onClick={() => navigate(`/instructor/students/${student.id}/performance`)}
+                                                onClick={() => navigate(`/students/${student.id}/performance`)}
                                                 style={{ marginLeft: 8 }}
                                             >
                                                 View Performance

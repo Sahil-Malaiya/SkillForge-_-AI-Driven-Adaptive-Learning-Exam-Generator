@@ -20,7 +20,11 @@ function CourseCard({ course, onEdit, onDelete, onManageSubjects }) {
     };
 
     return (
-        <div className="course-card">
+        <div
+            className="course-card"
+            onClick={() => onManageSubjects && onManageSubjects(course.id)}
+            style={{ cursor: 'pointer' }}
+        >
             <div
                 className="course-card-header"
                 style={{ background: getDifficultyGradient(course.difficultyLevel) }}
@@ -50,7 +54,10 @@ function CourseCard({ course, onEdit, onDelete, onManageSubjects }) {
             <div className="course-card-footer">
                 {onEdit && (
                     <button
-                        onClick={() => onEdit(course)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(course);
+                        }}
                         className="card-btn card-btn-edit"
                         title="Edit Course"
                     >
@@ -61,22 +68,10 @@ function CourseCard({ course, onEdit, onDelete, onManageSubjects }) {
                     </button>
                 )}
 
-                {onManageSubjects && (
-                    <button
-                        onClick={() => onManageSubjects(course.id)}
-                        className="card-btn card-btn-manage"
-                        title="Manage Subjects"
-                    >
-                        <svg className="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                        {onEdit ? 'Subjects' : 'View Course'}
-                    </button>
-                )}
-
                 {onDelete && (
                     <button
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             if (window.confirm(`Are you sure you want to delete "${course.title}"?`)) {
                                 onDelete(course.id);
                             }

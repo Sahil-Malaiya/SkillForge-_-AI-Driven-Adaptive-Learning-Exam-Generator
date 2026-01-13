@@ -249,6 +249,28 @@ function TopicManagement() {
 
     return (
         <div className="content-body">
+            <button
+                onClick={() => navigate(`/courses/${courseId}/subjects`)}
+                style={{
+                    background: '#f3f0ff',
+                    border: '1px solid #667eea',
+                    color: '#764ba2',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    marginBottom: '20px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontWeight: 600,
+                    padding: '10px 20px',
+                    borderRadius: '8px'
+                }}
+                onMouseOver={(e) => { e.target.style.background = '#667eea'; e.target.style.color = '#fff'; }}
+                onMouseOut={(e) => { e.target.style.background = '#f3f0ff'; e.target.style.color = '#764ba2'; }}
+            >
+                ← Back to Subjects
+            </button>
+
             <div className="breadcrumb">
                 <Link to="/courses">Courses</Link>
                 <span className="breadcrumb-separator">›</span>

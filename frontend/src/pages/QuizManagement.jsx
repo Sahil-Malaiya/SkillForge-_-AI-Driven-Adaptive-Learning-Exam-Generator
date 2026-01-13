@@ -21,7 +21,8 @@ const QuizManagement = () => {
         optionB: '',
         optionC: '',
         optionD: '',
-        correctAnswer: 'A'
+        correctAnswer: 'A',
+        type: 'MCQ'
     });
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
     const [students, setStudents] = useState([]);
@@ -133,7 +134,8 @@ const QuizManagement = () => {
             optionB: '',
             optionC: '',
             optionD: '',
-            correctAnswer: 'A'
+            correctAnswer: 'A',
+            type: 'MCQ'
         });
         setQuestionFormOpen(true);
     };
@@ -142,11 +144,12 @@ const QuizManagement = () => {
         setEditingQuestion(question);
         setQuestionForm({
             question: question.question,
-            optionA: question.optionA,
-            optionB: question.optionB,
-            optionC: question.optionC,
-            optionD: question.optionD,
-            correctAnswer: question.correctAnswer
+            optionA: question.optionA || '',
+            optionB: question.optionB || '',
+            optionC: question.optionC || '',
+            optionD: question.optionD || '',
+            correctAnswer: question.correctAnswer,
+            type: question.type || 'MCQ'
         });
         setQuestionFormOpen(true);
     };
@@ -288,7 +291,7 @@ const QuizManagement = () => {
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Typography variant="h4" gutterBottom component="div" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 3 }}>
+            <Typography variant="h4" gutterBottom component="div" sx={{ fontWeight: 'bold', color: '#1e3c72', mb: 3 }}>
                 Generated Quizzes
             </Typography>
 
@@ -298,31 +301,87 @@ const QuizManagement = () => {
                 <Grid container spacing={3}>
                     {quizzes.map((quiz) => (
                         <Grid item xs={12} md={6} key={quiz.id}>
-                            <Card elevation={3} sx={{ borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <Card
+                                elevation={3}
+                                sx={{
+                                    borderRadius: 2,
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    '&::before': {
+                                        content: '""',
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        height: '4px',
+                                        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)'
+                                    },
+                                    '&:hover': {
+                                        transform: 'translateY(-4px)',
+                                        boxShadow: '0 12px 40px rgba(102, 126, 234, 0.2)'
+                                    },
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
                                 <CardContent sx={{ flexGrow: 1 }}>
-                                    <Typography variant="h6" gutterBottom>
-                                        {quiz.topic ? quiz.topic.title : 'Unknown Topic'}
-                                    </Typography>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
+                                        <div style={{
+                                            width: '48px',
+                                            height: '48px',
+                                            borderRadius: '12px',
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            <svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                            </svg>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e3c72', mb: 0.5 }}>
+                                                {quiz.topic ? quiz.topic.title : 'Unknown Topic'}
+                                            </Typography>
+                                        </div>
+                                    </div>
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '20px' }}>
                                         <Chip
                                             label={quiz.difficulty}
-                                            color={
-                                                quiz.difficulty === 'Easy' ? 'success' :
-                                                    quiz.difficulty === 'Medium' ? 'warning' : 'error'
-                                            }
-                                            variant="outlined"
+                                            sx={{
+                                                bgcolor: quiz.difficulty === 'Easy' ? '#667eea' :
+                                                    quiz.difficulty === 'Medium' ? '#fd7e14' : '#dc3545',
+                                                color: 'white',
+                                                fontWeight: 600,
+                                                fontSize: '13px',
+                                                height: '28px'
+                                            }}
                                             size="small"
                                         />
-                                        <Typography variant="caption" color="textSecondary">
-                                            {new Date(quiz.createdAt).toLocaleDateString()}
-                                        </Typography>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6c757d', fontSize: '14px' }}>
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <Typography variant="caption" color="textSecondary">
+                                                {new Date(quiz.createdAt).toLocaleDateString()}
+                                            </Typography>
+                                        </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                                         <Button
                                             variant="contained"
                                             fullWidth
                                             onClick={() => handleViewQuestions(quiz)}
+                                            sx={{
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                '&:hover': {
+                                                    background: 'linear-gradient(135deg, #5568d3 0%, #6a4193 100%)'
+                                                }
+                                            }}
                                         >
                                             View Questions
                                         </Button>
@@ -337,7 +396,16 @@ const QuizManagement = () => {
                                     <Button
                                         variant="outlined"
                                         fullWidth
-                                        sx={{ mt: 1 }}
+                                        sx={{
+                                            mt: 1,
+                                            borderColor: '#667eea',
+                                            color: '#667eea',
+                                            '&:hover': {
+                                                borderColor: '#764ba2',
+                                                color: '#764ba2',
+                                                bgcolor: 'rgba(102, 126, 234, 0.04)'
+                                            }
+                                        }}
                                         onClick={() => handleOpenAssignDialog(quiz)}
                                     >
                                         Assign to Students
@@ -350,12 +418,41 @@ const QuizManagement = () => {
             )}
 
             {/* Questions Dialog */}
-            <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-                <DialogTitle>
-                    Quiz Questions - {selectedQuiz?.topic?.title}
-                    <Typography variant="caption" display="block" color="textSecondary">
-                        Difficulty: {selectedQuiz?.difficulty}
-                    </Typography>
+            <Dialog
+                open={openDialog}
+                onClose={() => setOpenDialog(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: 3,
+                        background: 'linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)'
+                    }
+                }}
+            >
+                <DialogTitle sx={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    pb: 3
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                            {selectedQuiz?.topic?.title}
+                        </Typography>
+                    </div>
+                    <Chip
+                        label={selectedQuiz?.difficulty}
+                        size="small"
+                        sx={{
+                            bgcolor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            fontWeight: 600,
+                            borderRadius: '12px'
+                        }}
+                    />
                 </DialogTitle>
                 <DialogContent>
                     {loadingQuestions ? (
@@ -369,18 +466,72 @@ const QuizManagement = () => {
                     ) : (
                         <div style={{ marginTop: '16px' }}>
                             {questions.map((q, index) => (
-                                <Card key={q.id} sx={{ mb: 2, p: 2 }}>
-                                    <Typography variant="h6" gutterBottom>
-                                        Question {index + 1}
-                                    </Typography>
-                                    <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
+                                <Card key={q.id} sx={{
+                                    mb: 3,
+                                    p: 3,
+                                    borderRadius: 3,
+                                    border: '2px solid #f0f0f0',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    '&::before': {
+                                        content: '""',
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '6px',
+                                        height: '100%',
+                                        background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)'
+                                    }
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                                        <div style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            color: 'white',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontWeight: 700,
+                                            fontSize: '16px'
+                                        }}>
+                                            {index + 1}
+                                        </div>
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e3c72', flex: 1 }}>
+                                            Question {index + 1}
+                                        </Typography>
+                                        {q.type === 'SAQ' && (
+                                            <Chip
+                                                label="Short Answer"
+                                                size="small"
+                                                sx={{
+                                                    bgcolor: '#e3f2fd',
+                                                    color: '#667eea',
+                                                    fontWeight: 600
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                    <Typography variant="body1" sx={{ mb: 3, fontWeight: 500, fontSize: '16px', lineHeight: 1.6, color: '#2c3e50' }}>
                                         {q.question}
                                     </Typography>
-                                    <div style={{ marginLeft: '16px' }}>
+                                    <div style={{ marginLeft: '0px' }}>
                                         {q.type === 'SAQ' ? (
-                                            <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#666' }}>
-                                                Short Answer Question (No options)
-                                            </Typography>
+                                            <div style={{
+                                                padding: '20px',
+                                                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                                                borderRadius: '12px',
+                                                border: '2px dashed #dee2e6',
+                                                textAlign: 'center'
+                                            }}>
+                                                <svg width="40" height="40" fill="none" stroke="#667eea" viewBox="0 0 24 24" style={{ margin: '0 auto 12px' }}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#6c757d', fontWeight: 500 }}>
+                                                    Student will provide a written answer
+                                                </Typography>
+                                            </div>
                                         ) : (
                                             ['A', 'B', 'C', 'D'].map((option) => {
                                                 const optionText = q[`option${option}`];
@@ -392,19 +543,49 @@ const QuizManagement = () => {
                                                     correctAns.startsWith(option + ')') ||
                                                     correctAns === normalizedOptionText;
                                                 return (
-                                                    <Typography
+                                                    <div
                                                         key={option}
-                                                        variant="body2"
-                                                        sx={{
-                                                            mb: 1,
-                                                            p: 1,
-                                                            borderRadius: 1,
-                                                            backgroundColor: isCorrect ? '#e8f5e9' : 'transparent',
-                                                            fontWeight: isCorrect ? 600 : 400,
-                                                            border: isCorrect ? '2px solid #4caf50' : '1px solid #e0e0e0'
+                                                        style={{
+                                                            marginBottom: '12px',
+                                                            padding: '14px 16px',
+                                                            borderRadius: '12px',
+                                                            background: isCorrect 
+                                                                ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)' 
+                                                                : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                                                            border: isCorrect ? '2px solid #28a745' : '2px solid #e9ecef',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '12px',
+                                                            transition: 'all 0.2s ease',
+                                                            cursor: 'default'
                                                         }}
                                                     >
-                                                        <strong>{option}.</strong> {optionText}
+                                                        <div style={{
+                                                            width: '28px',
+                                                            height: '28px',
+                                                            borderRadius: '50%',
+                                                            background: isCorrect 
+                                                                ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'
+                                                                : 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)',
+                                                            color: isCorrect ? 'white' : '#6c757d',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontWeight: 700,
+                                                            fontSize: '14px',
+                                                            flexShrink: 0
+                                                        }}>
+                                                            {option}
+                                                        </div>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                fontWeight: isCorrect ? 600 : 400,
+                                                                color: isCorrect ? '#155724' : '#2c3e50',
+                                                                flex: 1
+                                                            }}
+                                                        >
+                                                            {optionText}
                                                         {isCorrect && (
                                                             <Chip
                                                                 label="Correct"
@@ -464,6 +645,17 @@ const QuizManagement = () => {
             <Dialog open={questionFormOpen} onClose={() => setQuestionFormOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add Question'}</DialogTitle>
                 <DialogContent>
+                    <FormControl fullWidth sx={{ mt: 2, mb: 2 }}>
+                        <InputLabel>Question Type</InputLabel>
+                        <Select
+                            value={questionForm.type}
+                            label="Question Type"
+                            onChange={(e) => setQuestionForm({ ...questionForm, type: e.target.value })}
+                        >
+                            <MenuItem value="MCQ">Multiple Choice</MenuItem>
+                            <MenuItem value="SAQ">Short Answer</MenuItem>
+                        </Select>
+                    </FormControl>
                     <TextField
                         label="Question"
                         fullWidth
@@ -471,49 +663,66 @@ const QuizManagement = () => {
                         rows={3}
                         value={questionForm.question}
                         onChange={(e) => setQuestionForm({ ...questionForm, question: e.target.value })}
-                        sx={{ mt: 2, mb: 2 }}
-                    />
-                    <TextField
-                        label="Option A"
-                        fullWidth
-                        value={questionForm.optionA}
-                        onChange={(e) => setQuestionForm({ ...questionForm, optionA: e.target.value })}
                         sx={{ mb: 2 }}
                     />
-                    <TextField
-                        label="Option B"
-                        fullWidth
-                        value={questionForm.optionB}
-                        onChange={(e) => setQuestionForm({ ...questionForm, optionB: e.target.value })}
-                        sx={{ mb: 2 }}
-                    />
-                    <TextField
-                        label="Option C"
-                        fullWidth
-                        value={questionForm.optionC}
-                        onChange={(e) => setQuestionForm({ ...questionForm, optionC: e.target.value })}
-                        sx={{ mb: 2 }}
-                    />
-                    <TextField
-                        label="Option D"
-                        fullWidth
-                        value={questionForm.optionD}
-                        onChange={(e) => setQuestionForm({ ...questionForm, optionD: e.target.value })}
-                        sx={{ mb: 2 }}
-                    />
-                    <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Correct Answer</InputLabel>
-                        <Select
-                            value={questionForm.correctAnswer}
+                    {questionForm.type === 'MCQ' && (
+                        <>
+                            <TextField
+                                label="Option A"
+                                fullWidth
+                                value={questionForm.optionA}
+                                onChange={(e) => setQuestionForm({ ...questionForm, optionA: e.target.value })}
+                                sx={{ mb: 2 }}
+                            />
+                            <TextField
+                                label="Option B"
+                                fullWidth
+                                value={questionForm.optionB}
+                                onChange={(e) => setQuestionForm({ ...questionForm, optionB: e.target.value })}
+                                sx={{ mb: 2 }}
+                            />
+                            <TextField
+                                label="Option C"
+                                fullWidth
+                                value={questionForm.optionC}
+                                onChange={(e) => setQuestionForm({ ...questionForm, optionC: e.target.value })}
+                                sx={{ mb: 2 }}
+                            />
+                            <TextField
+                                label="Option D"
+                                fullWidth
+                                value={questionForm.optionD}
+                                onChange={(e) => setQuestionForm({ ...questionForm, optionD: e.target.value })}
+                                sx={{ mb: 2 }}
+                            />
+                        </>
+                    )}
+                    {questionForm.type === 'MCQ' ? (
+                        <FormControl fullWidth sx={{ mb: 2 }}>
+                            <InputLabel>Correct Answer</InputLabel>
+                            <Select
+                                value={questionForm.correctAnswer}
+                                label="Correct Answer"
+                                onChange={(e) => setQuestionForm({ ...questionForm, correctAnswer: e.target.value })}
+                            >
+                                <MenuItem value="A">A</MenuItem>
+                                <MenuItem value="B">B</MenuItem>
+                                <MenuItem value="C">C</MenuItem>
+                                <MenuItem value="D">D</MenuItem>
+                            </Select>
+                        </FormControl>
+                    ) : (
+                        <TextField
                             label="Correct Answer"
+                            fullWidth
+                            multiline
+                            rows={2}
+                            value={questionForm.correctAnswer}
                             onChange={(e) => setQuestionForm({ ...questionForm, correctAnswer: e.target.value })}
-                        >
-                            <MenuItem value="A">A</MenuItem>
-                            <MenuItem value="B">B</MenuItem>
-                            <MenuItem value="C">C</MenuItem>
-                            <MenuItem value="D">D</MenuItem>
-                        </Select>
-                    </FormControl>
+                            sx={{ mb: 2 }}
+                            helperText="Enter the expected answer for this short answer question"
+                        />
+                    )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setQuestionFormOpen(false)}>Cancel</Button>

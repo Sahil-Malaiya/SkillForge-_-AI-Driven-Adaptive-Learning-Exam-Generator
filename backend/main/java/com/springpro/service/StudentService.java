@@ -26,6 +26,11 @@ public class StudentService {
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
         student.setName(studentDetails.getName());
         student.setEmail(studentDetails.getEmail());
+        student.setPhone(studentDetails.getPhone());
+        student.setBio(studentDetails.getBio());
+        student.setDateOfBirth(studentDetails.getDateOfBirth());
+        student.setLocation(studentDetails.getLocation());
+        student.setProfileImage(studentDetails.getProfileImage());
         return repository.save(student);
     }
 

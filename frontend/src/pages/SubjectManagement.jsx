@@ -16,6 +16,7 @@ function SubjectManagement() {
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
         fetchCourse();
@@ -83,6 +84,7 @@ function SubjectManagement() {
             if (response.ok) {
                 setFormData({ name: '', description: '', courseId });
                 setEditingId(null);
+                setShowModal(false);
                 fetchSubjects();
             } else {
                 setError('Failed to save subject');
@@ -101,6 +103,7 @@ function SubjectManagement() {
             courseId: courseId
         });
         setEditingId(subject.id);
+        setShowModal(true);
     };
 
     const handleDelete = async (id) => {
@@ -130,76 +133,87 @@ function SubjectManagement() {
         navigate(`/courses/${courseId}/subjects/${subjectId}/topics`);
     };
 
+    const handleOpenModal = () => {
+        setEditingId(null);
+        setFormData({ name: '', description: '', courseId });
+        setError('');
+        setShowModal(true);
+    };
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setEditingId(null);
+        setFormData({ name: '', description: '', courseId });
+        setError('');
+    };
+
     return (
         <div className="content-body">
-            <div className="breadcrumb">
-                <Link to="/courses">Courses</Link>
-                <span className="breadcrumb-separator">›</span>
-                <span>{course?.title || 'Loading...'}</span>
-                <span className="breadcrumb-separator">›</span>
-                <span>Subjects</span>
-            </div>
+            <button
+                onClick={() => navigate('/courses')}
+                style={{
+                    background: '#f3f0ff',
+                    border: '1px solid #667eea',
+                    color: '#764ba2',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    marginBottom: '20px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontWeight: 600,
+                    padding: '10px 20px',
+                    borderRadius: '8px'
+                }}
+                onMouseOver={(e) => { e.target.style.background = '#667eea'; e.target.style.color = '#fff'; }}
+                onMouseOut={(e) => { e.target.style.background = '#f3f0ff'; e.target.style.color = '#764ba2'; }}
+            >
+                ← Back to Courses
+            </button>
 
-            <h2 style={{ marginBottom: '20px', color: '#2c3e50' }}>Subject Management</h2>
+            {/* Header Section */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '30px',
+                padding: '20px',
+                background: '#fff',
+                borderRadius: '12px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            }}>
+                <div>
+                    <h2 style={{ margin: '0 0 5px 0', fontSize: '28px', fontWeight: 600, color: '#2c3e50' }}>Subject Management</h2>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#6c757d' }}>Course: {course?.title || 'Loading...'}</p>
+                </div>
+
+                <button
+                    onClick={handleOpenModal}
+                    style={{
+                        padding: '12px 24px',
+                        background: '#667eea',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+                        transition: 'all 0.3s'
+                    }}
+                    onMouseOver={(e) => e.target.style.background = '#764ba2'}
+                    onMouseOut={(e) => e.target.style.background = '#667eea'}
+                >
+                    + Add New Subject
+                </button>
+            </div>
 
             {error && (
-                <div className="alert alert-error">{error}</div>
+                <div className="alert alert-error" style={{ marginBottom: '20px' }}>{error}</div>
             )}
 
-            <div className="form-section">
-                <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>
-                    {editingId ? 'Edit Subject' : 'Create Subject'}
-                </h3>
-                <form onSubmit={handleSubmit}>
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label className="form-label" htmlFor="name">Subject Name:</label>
-                            <input
-                                type="text"
-                                id="name"
-                                name="name"
-                                className="form-input"
-                                placeholder="Enter subject name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label" htmlFor="description">Description:</label>
-                            <input
-                                type="text"
-                                id="description"
-                                name="description"
-                                className="form-input"
-                                placeholder="Enter description"
-                                value={formData.description}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button type="submit" className="btn btn-primary" disabled={loading}>
-                            {loading ? 'Saving...' : editingId ? 'Update Subject' : 'Save Subject'}
-                        </button>
-                        {editingId && (
-                            <button
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    setEditingId(null);
-                                    setFormData({ name: '', description: '', courseId });
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        )}
-                    </div>
-                </form>
-            </div>
-
+            {/* Subjects Grid */}
             <div style={{ marginTop: '24px' }}>
-                <h3 style={{ fontSize: '18px', marginBottom: '20px', color: '#2c3e50' }}>Subjects for {course?.title}</h3>
                 {subjects.length === 0 ? (
                     <div style={{
                         textAlign: 'center',
@@ -231,21 +245,30 @@ function SubjectManagement() {
                                         onClick={() => handleEdit(subject)}
                                         title="Edit Subject"
                                     >
-                                        ✏️ Edit
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ marginRight: '4px' }}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        Edit
                                     </button>
                                     <button
                                         className="subject-card-btn"
                                         onClick={() => handleDelete(subject.id)}
                                         title="Delete Subject"
                                     >
-                                        🗑️ Delete
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ marginRight: '4px' }}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete
                                     </button>
                                     <button
                                         className="subject-card-btn btn-primary-action"
                                         onClick={() => handleManageTopics(subject.id)}
                                         title="Manage Topics"
                                     >
-                                        📚 Manage Topics
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ marginRight: '4px' }}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                        </svg>
+                                        Manage Topics
                                     </button>
                                 </div>
                             </div>
@@ -253,6 +276,122 @@ function SubjectManagement() {
                     </div>
                 )}
             </div>
+
+            {/* Modal for Create/Edit Subject */}
+            {showModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        background: '#fff',
+                        borderRadius: '12px',
+                        padding: '30px',
+                        width: '500px',
+                        maxWidth: '90%',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+                    }}>
+                        <h3 style={{ margin: '0 0 20px 0', fontSize: '22px', fontWeight: 600, color: '#2c3e50' }}>
+                            {editingId ? 'Edit Subject' : 'Create New Subject'}
+                        </h3>
+
+                        {error && (
+                            <div className="alert alert-error" style={{ marginBottom: '15px' }}>{error}</div>
+                        )}
+
+                        <form onSubmit={handleSubmit}>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: '#555' }}>
+                                    Subject Name
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    placeholder="Enter subject name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '1px solid #e0e0e0',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{ marginBottom: '25px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: '#555' }}>
+                                    Description
+                                </label>
+                                <input
+                                    type="text"
+                                    name="description"
+                                    placeholder="Enter description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '1px solid #e0e0e0',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="button"
+                                    onClick={handleCloseModal}
+                                    style={{
+                                        padding: '10px 20px',
+                                        background: '#f5f5f5',
+                                        color: '#666',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        fontWeight: 500,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    style={{
+                                        padding: '10px 20px',
+                                        background: '#667eea',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        cursor: loading ? 'not-allowed' : 'pointer',
+                                        opacity: loading ? 0.7 : 1
+                                    }}
+                                >
+                                    {loading ? 'Saving...' : editingId ? 'Update Subject' : 'Save Subject'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

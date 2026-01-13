@@ -91,15 +91,6 @@ function App() {
                     }
                 />
 
-                <Route
-                    path="/instructor/students/:studentId/performance"
-                    element={
-                        <PrivateRoute>
-                            <InstructorStudentPerformance />
-                        </PrivateRoute>
-                    }
-                />
-
                 {/* Instructor Dashboard with nested routes */}
                 <Route
                     path="/instructor-dashboard"
@@ -149,6 +140,7 @@ function App() {
                     }
                 >
                     <Route index element={<StudentManagement />} />
+                    <Route path=":studentId/performance" element={<InstructorStudentPerformance />} />
                 </Route>
 
                 <Route
