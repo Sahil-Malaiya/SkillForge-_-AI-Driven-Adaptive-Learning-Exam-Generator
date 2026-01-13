@@ -30,6 +30,7 @@ function TopicManagement() {
     const [questionCount, setQuestionCount] = useState(5);
     const [quizSuccessMsg, setQuizSuccessMsg] = useState('');
     const [generatingQuiz, setGeneratingQuiz] = useState(false);
+    const [saqCount, setSaqCount] = useState(0);
 
     useEffect(() => {
         fetchCourse();
@@ -226,7 +227,8 @@ function TopicManagement() {
                 body: JSON.stringify({
                     topicId: selectedTopicId,
                     difficulty: difficulty,
-                    count: questionCount
+                    count: questionCount,
+                    countSAQ: saqCount
                 })
             });
 
@@ -473,6 +475,19 @@ function TopicManagement() {
                             onChange={(e) => setQuestionCount(e.target.value)}
                         >
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                <MenuItem key={n} value={n}>{n}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel shrink>Short Answer Questions (0-5)</InputLabel>
+                        <Select
+                            value={saqCount}
+                            label="Short Answer Questions"
+                            onChange={(e) => setSaqCount(e.target.value)}
+                        >
+                            {[0, 1, 2, 3, 4, 5].map(n => (
                                 <MenuItem key={n} value={n}>{n}</MenuItem>
                             ))}
                         </Select>

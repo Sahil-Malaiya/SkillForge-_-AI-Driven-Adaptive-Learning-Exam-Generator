@@ -14,12 +14,19 @@ function AIQuiz() {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [countMCQ, setCountMCQ] = useState(5);
+    const [countSAQ, setCountSAQ] = useState(0);
 
     const startQuiz = async () => {
         try {
             setLoading(true);
             setError(null);
-            const resp = await studentQuizService.generateQuiz(studentId, { topicId, difficulty });
+            const resp = await studentQuizService.generateQuiz(studentId, {
+                topicId,
+                difficulty,
+                count: countMCQ,
+                countSAQ: countSAQ
+            });
             // resp.quiz and resp.questions
             const mapped = {
                 id: resp.quiz.id,
@@ -31,7 +38,8 @@ function AIQuiz() {
                     optionA: q.optionA,
                     optionB: q.optionB,
                     optionC: q.optionC,
-                    optionD: q.optionD
+                    optionD: q.optionD,
+                    type: q.type || ((q.optionA || q.options?.[0]) ? 'MCQ' : 'SAQ')
                 }))
             };
             setQuiz(mapped);
@@ -74,6 +82,14 @@ function AIQuiz() {
                             <option value="HARD">Hard</option>
                         </select>
                     </label>
+                    <label>
+                        MCQ Count:
+                        <input type="number" min="1" max="10" value={countMCQ} onChange={e => setCountMCQ(parseInt(e.target.value))} />
+                    </label>
+                    <label>
+                        SAQ Count (Practice):
+                        <input type="number" min="0" max="5" value={countSAQ} onChange={e => setCountSAQ(parseInt(e.target.value))} />
+                    </label>
                     <button onClick={startQuiz} disabled={loading || !topicId}>Start Quiz</button>
                     {error && <p className="error">{error}</p>}
                 </div>
@@ -84,7 +100,7 @@ function AIQuiz() {
             )}
 
             {result && (
-                <QuizResult result={result} onClose={() => setResult(null)} />
+                <QuizResult result={result} onClose={() => setResult(null)} onRetry={startQuiz} />
             )}
         </div>
     );

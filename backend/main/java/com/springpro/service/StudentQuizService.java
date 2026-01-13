@@ -71,6 +71,9 @@ public class StudentQuizService {
         return resp;
     }
 
+    @Autowired
+    private com.springpro.repository.StudentQuizAnswerRepository answerRepository;
+
     // Submit answers for an assigned quiz. Enforces assignment check and creates
     // attempt record.
     public Map<String, Object> submitAssignedQuiz(Long studentId, Long quizId, QuizSubmitRequest submission) {
@@ -80,33 +83,51 @@ public class StudentQuizService {
 
         List<QuizQuestion> questions = quizQuestionRepository.findByQuizId(quizId);
 
-        int total = questions.size();
-        int score = 0;
-        for (QuizQuestion q : questions) {
-            String selected = submission.getAnswers().get(q.getId());
-            if (selected != null && selected.equals(q.getCorrectAnswer())) {
-                score++;
-            }
-        }
-
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         StudentQuizAttempt attempt = new StudentQuizAttempt();
         attempt.setStudent(student);
-
-        // Do not reference QuizRepository directly. Store only quizId in the attempt if
-        // mapping requires it.
         com.springpro.entity.Quiz qref = new com.springpro.entity.Quiz();
         qref.setId(quizId);
         attempt.setQuiz(qref);
-
-        attempt.setScore(score);
-        attempt.setTotalQuestions(total);
         attempt.setAttemptedAt(LocalDateTime.now());
-        attemptRepository.save(attempt);
+        attempt.setTotalQuestions(questions.size());
 
-        // Mark assignment as completed
+        // Save attempt first to get ID for answers
+        final StudentQuizAttempt savedAttempt = attemptRepository.save(attempt);
+
+        int mcqScore = 0;
+        boolean hasSAQ = false;
+
+        for (QuizQuestion q : questions) {
+            String selected = submission.getAnswers().get(q.getId());
+
+            com.springpro.entity.StudentQuizAnswer answer = new com.springpro.entity.StudentQuizAnswer();
+            answer.setAttempt(savedAttempt);
+            answer.setQuestion(q);
+            answer.setAnswerText(selected);
+
+            if (q.getType() == com.springpro.entity.QuestionType.MCQ) {
+                if (selected != null && selected.equals(q.getCorrectAnswer())) {
+                    mcqScore++;
+                    answer.setMarksObtained(1);
+                } else {
+                    answer.setMarksObtained(0);
+                }
+                answer.setGraded(true);
+            } else {
+                hasSAQ = true;
+                answer.setGraded(false);
+                answer.setMarksObtained(null); // To be graded by instructor
+            }
+            answerRepository.save(answer);
+        }
+
+        savedAttempt.setScore(mcqScore);
+        savedAttempt.setFullyAssessed(!hasSAQ);
+        attemptRepository.save(savedAttempt);
+
         // Mark assignment as submitted
         List<QuizAssignment> assignments = quizAssignmentRepository.findByStudentId(studentId);
         assignments.stream()
@@ -118,10 +139,11 @@ public class StudentQuizService {
                 });
 
         Map<String, Object> resp = new HashMap<>();
-        resp.put("score", score);
-        resp.put("totalQuestions", total);
-        resp.put("accuracy", total == 0 ? 0 : (score * 100) / total);
-        resp.put("attemptId", attempt.getId());
+        resp.put("score", mcqScore);
+        resp.put("totalQuestions", questions.size());
+        resp.put("accuracy", questions.size() == 0 ? 0 : (mcqScore * 100) / questions.size());
+        resp.put("attemptId", savedAttempt.getId());
+        resp.put("fullyAssessed", !hasSAQ);
         return resp;
     }
 }

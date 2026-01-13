@@ -13,6 +13,7 @@ function StudentQuizzes() {
     const [error, setError] = useState(null);
     const [currentQuiz, setCurrentQuiz] = useState(null);
     const [quizResult, setQuizResult] = useState(null);
+    const [gradingPending, setGradingPending] = useState(false);
 
     const user = authService.getCurrentUser()?.user || authService.getCurrentUser();
     const studentId = user?.userId || user?.id || user?.userId;
@@ -82,6 +83,7 @@ function StudentQuizzes() {
                         optionB: q.optionB || q.options?.[1] || null,
                         optionC: q.optionC || q.options?.[2] || null,
                         optionD: q.optionD || q.options?.[3] || null,
+                        type: q.type || ((q.optionA || q.options?.[0]) ? 'MCQ' : 'SAQ')
                     }))
                     : (resp.quiz?.questions || []),
                 topicId: resp.quiz?.topicId || resp.topicId || (quiz.quiz && quiz.quiz.topicId) || quiz.topicId
@@ -119,11 +121,18 @@ function StudentQuizzes() {
                 passed: resp.passed ?? (Number(score) >= 50),
                 questionResults: resp.questionResults || resp.question_results || [],
                 nextDifficulty: resp.nextDifficulty || resp.next_difficulty || 'MEDIUM',
-                topicId: submission.topicId || (currentQuiz && currentQuiz.topicId)
+                nextDifficulty: resp.nextDifficulty || resp.next_difficulty || 'MEDIUM',
+                topicId: submission.topicId || (currentQuiz && currentQuiz.topicId),
+                quizId: submission.quizId || submission.id || submission.quiz?.id
             };
 
-            setQuizResult(mappedResult);
-            setCurrentQuiz(null);
+            if (resp.fullyAssessed === false) {
+                setGradingPending(true);
+                setCurrentQuiz(null);
+            } else {
+                setQuizResult(mappedResult);
+                setCurrentQuiz(null);
+            }
             // refresh list after submit (optional)
             fetchAssignedQuizzes();
         } catch (err) {
@@ -134,16 +143,39 @@ function StudentQuizzes() {
         }
     };
 
+
     const handleQuizCancel = () => {
         if (window.confirm('Cancel this quiz? Progress will be lost.')) setCurrentQuiz(null);
+    };
+
+    const handleRetake = () => {
+        if (!quizResult || !quizResult.quizId) {
+            console.error('Retake failed: missing quizId in result', quizResult);
+            return;
+        }
+        const q = quizzes.find(x => String(x.id) === String(quizResult.quizId) || String(x.quizId) === String(quizResult.quizId));
+        if (q) {
+            setQuizResult(null);
+            onStart(q);
+        } else {
+            console.error('Retake failed: quiz not found in list', quizResult.quizId);
+        }
     };
 
     const handleResultClose = () => {
         setQuizResult(null);
         setCurrentQuiz(null);
+        setGradingPending(false);
         // navigate back to the assigned quizzes route
         navigate('/student-dashboard/quizzes');
         // refresh list
+        fetchAssignedQuizzes();
+    };
+
+    const handlePendingClose = () => {
+        setGradingPending(false);
+        setCurrentQuiz(null);
+        navigate('/student-dashboard/quizzes');
         fetchAssignedQuizzes();
     };
 
@@ -152,7 +184,7 @@ function StudentQuizzes() {
             <Sidebar />
             <div className={`main-content ${(currentQuiz || quizResult) ? 'quiz-active' : ''}`} style={{ background: '#ffffff' }}>
                 <div className="page-quizzes">
-                    {!currentQuiz && !quizResult ? (
+                    {!currentQuiz && !quizResult && !gradingPending ? (
                         <>
                             <div className="content-header">
                                 <h1>Assigned Quizzes</h1>
@@ -195,7 +227,39 @@ function StudentQuizzes() {
                                                     </div>
 
                                                     <div className="quiz-actions">
-                                                        <button className="btn-start" onClick={() => onStart(q)}>Start Quiz</button>
+                                                        {status === 'SUBMITTED' ? (
+                                                            q.fullyAssessed === false ? (
+                                                                <div className="ongoing-assessment">Ongoing Assessment</div>
+                                                            ) : (
+                                                                <>
+                                                                    <button className="btn-result" onClick={() => {
+                                                                        setQuizResult({
+                                                                            score: q.score,
+                                                                            totalQuestions: duration,
+                                                                            accuracy: (q.score * 100) / duration,
+                                                                            passed: q.score >= (duration / 2),
+                                                                            quizId: q.id || q.quizId,
+                                                                            topicId: q.topicId || (q.quiz && q.quiz.topicId)
+                                                                        });
+                                                                    }}>View Result</button>
+                                                                    <button
+                                                                        className="btn-start"
+                                                                        style={{ marginLeft: '10px' }}
+                                                                        onClick={() => onStart(q)}
+                                                                    >
+                                                                        Retake Quiz
+                                                                    </button>
+                                                                </>
+                                                            )
+                                                        ) : (
+                                                            <button
+                                                                className="btn-start"
+                                                                onClick={() => onStart(q)}
+                                                                disabled={status === 'SUBMITTED' || status === 'COMPLETED'}
+                                                            >
+                                                                Start Quiz
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );
@@ -226,14 +290,32 @@ function StudentQuizzes() {
                                 <QuizResult
                                     result={quizResult}
                                     onClose={handleResultClose}
-                                    onRetry={() => { setQuizResult(null); }}
+                                    onRetry={handleRetake}
                                 />
+                            )}
+
+                            {gradingPending && (
+                                <div className="quiz-result" style={{ textAlign: 'center', padding: '40px' }}>
+                                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>⏳</div>
+                                    <h2 style={{ color: '#f39c12', marginBottom: '16px' }}>Grading Ongoing</h2>
+                                    <p style={{ fontSize: '1.1rem', color: '#555', marginBottom: '30px' }}>
+                                        This quiz contains short answer questions that require manual grading by your instructor.
+                                        You can check back later to view your full results.
+                                    </p>
+                                    <button
+                                        className="btn-primary"
+                                        style={{ padding: '10px 24px', fontSize: '1rem' }}
+                                        onClick={handlePendingClose}
+                                    >
+                                        Back to Assigned Quizzes
+                                    </button>
+                                </div>
                             )}
                         </div>
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 

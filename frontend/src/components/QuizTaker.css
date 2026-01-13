@@ -69,6 +69,23 @@
     gap: 12px;
 }
 
+.saq-input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 16px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+
+.saq-input:focus {
+    border-color: #007bff;
+}
+
 .option {
     display: flex;
     align-items: center;

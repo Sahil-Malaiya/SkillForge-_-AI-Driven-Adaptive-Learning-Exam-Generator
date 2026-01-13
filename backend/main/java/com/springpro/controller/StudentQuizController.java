@@ -35,7 +35,7 @@ public class StudentQuizController {
 
     @Autowired
     private StudentQuizAttemptRepository attemptRepository;
-    
+
     @Autowired
     private QuizAssignmentRepository quizAssignmentRepository;
 
@@ -51,7 +51,8 @@ public class StudentQuizController {
         return ResponseEntity.ok(resp);
     }
 
-    // Submit quiz answers for an assigned quiz. Enforces assignment check in service layer.
+    // Submit quiz answers for an assigned quiz. Enforces assignment check in
+    // service layer.
     @PostMapping("/quizzes/{quizId}/submit")
     public ResponseEntity<Map<String, Object>> submitQuiz(@PathVariable Long studentId, @PathVariable Long quizId,
             @RequestBody QuizSubmitRequest submission) {
@@ -81,7 +82,7 @@ public class StudentQuizController {
         resp.put("attempts", attempts);
         return ResponseEntity.ok(resp);
     }
-    
+
     @GetMapping("/assignments")
     public ResponseEntity<List<Map<String, Object>>> getAssignments(@PathVariable Long studentId) {
         List<QuizAssignment> assignments = quizAssignmentRepository.findByStudentId(studentId);
@@ -94,14 +95,16 @@ public class StudentQuizController {
             int questionCount = 0;
             if (a.getQuiz() != null) {
                 quizId = a.getQuiz().getId();
-                if (a.getQuiz().getTopic() != null) title = a.getQuiz().getTopic().getTitle();
+                if (a.getQuiz().getTopic() != null)
+                    title = a.getQuiz().getTopic().getTitle();
                 questionCount = quizQuestionRepository.findByQuizId(quizId).size();
             }
             if (a.getCourse() != null) {
                 courseTitle = a.getCourse().getTitle();
             }
 
-            // duration: estimate as number of questions (minutes) — frontend-friendly number
+            // duration: estimate as number of questions (minutes) — frontend-friendly
+            // number
             Integer duration = questionCount;
 
             m.put("quizId", quizId);
@@ -109,6 +112,17 @@ public class StudentQuizController {
             m.put("course", courseTitle);
             m.put("duration", duration);
             m.put("status", a.getStatus());
+
+            // Add progress/assessment info if available
+            List<StudentQuizAttempt> attempts = attemptRepository.findByStudentId(studentId);
+            attempts.stream()
+                    .filter(att -> att.getQuiz().getId().equals(a.getQuiz().getId()))
+                    .max((att1, att2) -> att1.getAttemptedAt().compareTo(att2.getAttemptedAt()))
+                    .ifPresent(latest -> {
+                        m.put("fullyAssessed", latest.isFullyAssessed());
+                        m.put("score", latest.getScore() + latest.getManualScore());
+                    });
+
             return m;
         }).collect(Collectors.toList());
 

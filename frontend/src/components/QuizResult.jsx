@@ -158,7 +158,7 @@ function QuizResult({ result = {}, onClose, onRetry }) {
                         </div>
                         <p className="mt-2 muted">You're doing well! A quick review and another attempt could help you master this topic.</p>
                         <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                            <button className="btn btn-primary" onClick={onRetry}>Retake Quiz</button>
+                            {onRetry && <button className="btn btn-primary" onClick={onRetry}>Retake Quiz</button>}
                             <button className="btn btn-outline" onClick={() => navigate(`/student-dashboard/my-courses?topicId=${result.topicId || result.quiz?.topicId}`)}>Review Topic</button>
                         </div>
                     </div>
@@ -169,9 +169,12 @@ function QuizResult({ result = {}, onClose, onRetry }) {
                             <span className="target-title">Review Topic Materials</span>
                         </div>
                         <p className="mt-2 muted">It looks like you need a bit more practice. We recommend going through the topic materials again before retaking the quiz.</p>
-                        <button className="btn btn-primary mt-2" onClick={() => navigate(`/student-dashboard/my-courses?topicId=${result.topicId || result.quiz?.topicId}`)}>
-                            Review Topic
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                            {onRetry && <button className="btn btn-primary" onClick={onRetry}>Retake Quiz</button>}
+                            <button className="btn btn-outline" onClick={() => navigate(`/student-dashboard/my-courses?topicId=${result.topicId || result.quiz?.topicId}`)}>
+                                Review Topic
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -213,11 +216,6 @@ function QuizResult({ result = {}, onClose, onRetry }) {
             )}
 
             <div className="result-actions">
-                {onRetry && (
-                    <button className="retry-btn" onClick={onRetry}>
-                        Try Again
-                    </button>
-                )}
                 <button className="close-btn" onClick={onClose}>
                     Back to Assigned Quizzes
                 </button>

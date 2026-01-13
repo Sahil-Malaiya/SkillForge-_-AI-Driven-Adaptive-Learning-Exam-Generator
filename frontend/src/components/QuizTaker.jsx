@@ -27,6 +27,13 @@ function QuizTaker({ quiz, onSubmit, onCancel }) {
         });
     };
 
+    const handleTextChange = (questionId, text) => {
+        setAnswers({
+            ...answers,
+            [questionId]: text
+        });
+    };
+
     const handleNext = () => {
         if (currentQuestionIndex < quiz.questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -78,18 +85,28 @@ function QuizTaker({ quiz, onSubmit, onCancel }) {
                 <h3 className="question-text">{currentQuestion.questionText}</h3>
 
                 <div className="options-container">
-                    {['A', 'B', 'C', 'D'].map((option) => (
-                        <div
-                            key={option}
-                            className={`option ${answers[currentQuestion.id] === option ? 'selected' : ''}`}
-                            onClick={() => handleAnswerSelect(currentQuestion.id, option)}
-                        >
-                            <div className="option-letter">{option}</div>
-                            <div className="option-text">
-                                {currentQuestion[`option${option}`]}
+                    {currentQuestion.type === 'SAQ' ? (
+                        <textarea
+                            className="saq-input"
+                            placeholder="Type your answer here..."
+                            value={answers[currentQuestion.id] || ''}
+                            onChange={(e) => handleTextChange(currentQuestion.id, e.target.value)}
+                            rows={6}
+                        />
+                    ) : (
+                        ['A', 'B', 'C', 'D'].map((option) => (
+                            <div
+                                key={option}
+                                className={`option ${answers[currentQuestion.id] === option ? 'selected' : ''}`}
+                                onClick={() => handleAnswerSelect(currentQuestion.id, option)}
+                            >
+                                <div className="option-letter">{option}</div>
+                                <div className="option-text">
+                                    {currentQuestion[`option${option}`]}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
 
