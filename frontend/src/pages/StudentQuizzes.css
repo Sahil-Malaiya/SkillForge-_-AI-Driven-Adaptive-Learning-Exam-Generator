@@ -89,6 +89,32 @@
   transform: translateY(1px);
 }
 
+.ongoing-assessment {
+  color: #fd7e14;
+  font-weight: 600;
+  padding: 10px 16px;
+  background: #fff4e6;
+  border-radius: 10px;
+  display: inline-block;
+  font-size: 14px;
+}
+
+.btn-result {
+  background: linear-gradient(135deg, #00b894, #00cec9);
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 184, 148, 0.18);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.btn-result:hover {
+  background: linear-gradient(135deg, #00a082, #00b3af);
+}
+
 @media (max-width: 600px) {
   .quizzes-grid {
     grid-template-columns: 1fr;

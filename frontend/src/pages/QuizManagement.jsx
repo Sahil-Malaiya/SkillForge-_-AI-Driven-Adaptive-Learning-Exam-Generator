@@ -370,40 +370,46 @@ const QuizManagement = () => {
                                         {q.question}
                                     </Typography>
                                     <div style={{ marginLeft: '16px' }}>
-                                        {['A', 'B', 'C', 'D'].map((option) => {
-                                            const optionText = q[`option${option}`];
-                                            // Handle both "A" (letter) and "The choice text" (full text) formats
-                                            const correctAns = (q.correctAnswer || '').trim().toUpperCase();
-                                            const normalizedOptionText = (optionText || '').trim().toUpperCase();
-                                            const isCorrect = correctAns === option ||
-                                                correctAns.startsWith(option + '.') ||
-                                                correctAns.startsWith(option + ')') ||
-                                                correctAns === normalizedOptionText;
-                                            return (
-                                                <Typography
-                                                    key={option}
-                                                    variant="body2"
-                                                    sx={{
-                                                        mb: 1,
-                                                        p: 1,
-                                                        borderRadius: 1,
-                                                        backgroundColor: isCorrect ? '#e8f5e9' : 'transparent',
-                                                        fontWeight: isCorrect ? 600 : 400,
-                                                        border: isCorrect ? '2px solid #4caf50' : '1px solid #e0e0e0'
-                                                    }}
-                                                >
-                                                    <strong>{option}.</strong> {optionText}
-                                                    {isCorrect && (
-                                                        <Chip
-                                                            label="Correct"
-                                                            size="small"
-                                                            color="success"
-                                                            sx={{ ml: 2, height: '20px' }}
-                                                        />
-                                                    )}
-                                                </Typography>
-                                            );
-                                        })}
+                                        {q.type === 'SAQ' ? (
+                                            <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#666' }}>
+                                                Short Answer Question (No options)
+                                            </Typography>
+                                        ) : (
+                                            ['A', 'B', 'C', 'D'].map((option) => {
+                                                const optionText = q[`option${option}`];
+                                                // Handle both "A" (letter) and "The choice text" (full text) formats
+                                                const correctAns = (q.correctAnswer || '').trim().toUpperCase();
+                                                const normalizedOptionText = (optionText || '').trim().toUpperCase();
+                                                const isCorrect = correctAns === option ||
+                                                    correctAns.startsWith(option + '.') ||
+                                                    correctAns.startsWith(option + ')') ||
+                                                    correctAns === normalizedOptionText;
+                                                return (
+                                                    <Typography
+                                                        key={option}
+                                                        variant="body2"
+                                                        sx={{
+                                                            mb: 1,
+                                                            p: 1,
+                                                            borderRadius: 1,
+                                                            backgroundColor: isCorrect ? '#e8f5e9' : 'transparent',
+                                                            fontWeight: isCorrect ? 600 : 400,
+                                                            border: isCorrect ? '2px solid #4caf50' : '1px solid #e0e0e0'
+                                                        }}
+                                                    >
+                                                        <strong>{option}.</strong> {optionText}
+                                                        {isCorrect && (
+                                                            <Chip
+                                                                label="Correct"
+                                                                size="small"
+                                                                color="success"
+                                                                sx={{ ml: 2, height: '20px' }}
+                                                            />
+                                                        )}
+                                                    </Typography>
+                                                );
+                                            })
+                                        )}
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '12px', justifyContent: 'flex-end' }}>
                                         <Button
