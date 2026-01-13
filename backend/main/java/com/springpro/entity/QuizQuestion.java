@@ -11,7 +11,7 @@ public class QuizQuestion {
 
     @ManyToOne
     private Quiz quiz;
-    
+
     @Column(columnDefinition = "TEXT")
     private String question;
     @Column(columnDefinition = "TEXT")
@@ -22,7 +22,7 @@ public class QuizQuestion {
     private String optionC;
     @Column(columnDefinition = "TEXT")
     private String optionD;
-
+       
     @Enumerated(EnumType.STRING)
     private QuestionType type = QuestionType.MCQ;
 
