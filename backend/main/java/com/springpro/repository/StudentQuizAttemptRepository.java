@@ -10,4 +10,7 @@ public interface StudentQuizAttemptRepository extends JpaRepository<StudentQuizA
     List<StudentQuizAttempt> findByStudentId(Long studentId);
 
     List<StudentQuizAttempt> findByFullyAssessedFalse();
+    
+    // Check whether any attempts exist for a given quiz id
+    boolean existsByQuizId(Long quizId);
 }

@@ -46,9 +46,17 @@ public class QuizController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteQuiz(@PathVariable Long id) {
-        quizService.deleteQuiz(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Object> deleteQuiz(@PathVariable Long id) {
+        try {
+            quizService.deleteQuiz(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalStateException ise) {
+            // Quiz has attempts — return 409 Conflict with friendly message
+            return ResponseEntity.status(409).body(java.util.Map.of("message", ise.getMessage()));
+        } catch (RuntimeException re) {
+            // Could be quiz not found or other runtime issue
+            return ResponseEntity.status(400).body(java.util.Map.of("message", re.getMessage()));
+        }
     }
 
     @GetMapping("/{quizId}/questions")

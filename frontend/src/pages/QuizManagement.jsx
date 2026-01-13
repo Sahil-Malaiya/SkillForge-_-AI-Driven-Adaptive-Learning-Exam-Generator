@@ -110,8 +110,15 @@ const QuizManagement = () => {
                 setQuizzes(quizzes.filter(quiz => quiz.id !== id));
                 setSnackbar({ open: true, message: 'Quiz deleted successfully!', severity: 'success' });
             } else {
-                const errText = await response.text();
-                setSnackbar({ open: true, message: `Failed to delete quiz: ${errText}`, severity: 'error' });
+                let errMsg = 'Failed to delete quiz';
+                try {
+                    const body = await response.json();
+                    errMsg = body.message || body.error || JSON.stringify(body);
+                } catch (e) {
+                    const text = await response.text();
+                    if (text) errMsg = text;
+                }
+                setSnackbar({ open: true, message: errMsg, severity: 'error' });
             }
         } catch (err) {
             setSnackbar({ open: true, message: `Error deleting quiz: ${err.message}`, severity: 'error' });

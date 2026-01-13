@@ -1,5 +1,8 @@
 package com.springpro.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -18,6 +21,9 @@ public class Topic {
 
     private String videoUrl; // Path to stored video file
     private String pdfUrl; // Path to stored PDF file
+    // 🔥 YAHI ADD KARNA HAI
+    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Quiz> quizzes = new ArrayList<>();
 
     public Topic() {
     }

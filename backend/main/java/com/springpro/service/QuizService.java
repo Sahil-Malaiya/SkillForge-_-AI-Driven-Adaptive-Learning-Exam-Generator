@@ -35,6 +35,8 @@ public class QuizService {
     private StudentRepository studentRepository;
 
     @Autowired
+    private com.springpro.repository.StudentQuizAttemptRepository attemptRepository;
+    @Autowired
     private GeminiService geminiService;
 
     public Quiz createQuiz(Long topicId, String difficulty, int countMCQ, int countSAQ) {
@@ -112,6 +114,16 @@ public class QuizService {
     }
 
     public void deleteQuiz(Long id) {
+        // Return early with a clear exception if the quiz has already been attempted
+        if (attemptRepository.existsByQuizId(id)) {
+            throw new IllegalStateException("This quiz has already been attempted by students and cannot be deleted.");
+        }
+
+        // Ensure quiz exists before attempting to delete - helps avoid ambiguous errors
+        if (!quizRepository.existsById(id)) {
+            throw new RuntimeException("Quiz not found with id " + id);
+        }
+
         quizRepository.deleteById(id);
     }
 
