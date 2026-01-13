@@ -23,8 +23,16 @@ public class QuizController {
         System.out.println("Received createQuiz request: " + payload);
         Long topicId = Long.valueOf(payload.get("topicId").toString());
         String difficulty = (String) payload.get("difficulty");
-        int count = payload.containsKey("count") ? Integer.parseInt(payload.get("count").toString()) : 2;
-        return ResponseEntity.ok(quizService.createQuiz(topicId, difficulty, count));
+        int countMCQ = payload.containsKey("count") ? Integer.parseInt(payload.get("count").toString()) : 2;
+        int countSAQ = payload.containsKey("countSAQ") ? Integer.parseInt(payload.get("countSAQ").toString()) : 0;
+
+        // If they still pass 'count' but not countMCQ, use 'count' as countMCQ for
+        // backward compatibility
+        if (payload.containsKey("countMCQ")) {
+            countMCQ = Integer.parseInt(payload.get("countMCQ").toString());
+        }
+
+        return ResponseEntity.ok(quizService.createQuiz(topicId, difficulty, countMCQ, countSAQ));
     }
 
     @GetMapping
@@ -72,11 +80,11 @@ public class QuizController {
     public ResponseEntity<List<Student>> getAllStudents() {
         return ResponseEntity.ok(quizService.getAllStudents());
     }
-     @GetMapping("/students/1")
+
+    @GetMapping("/students/1")
     public ResponseEntity<List<Student>> getAllStudentsbyOne() {
         return ResponseEntity.ok(quizService.getAllStudents());
     }
-
 
     @PostMapping("/{quizId}/assign")
     public ResponseEntity<Void> assignQuiz(

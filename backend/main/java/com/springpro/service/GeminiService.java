@@ -18,7 +18,7 @@ public class GeminiService {
     @Value("${gemini.api.key:}")
     private String geminiKey;
 
-    public JSONArray generateMCQ(String topicName, String difficulty, int count) {
+    public JSONArray generateQuiz(String topicName, String difficulty, int countMCQ, int countSAQ) {
 
         // Configure timeouts (important for AI calls)
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -26,11 +26,25 @@ public class GeminiService {
         factory.setReadTimeout(60000);
         RestTemplate restTemplate = new RestTemplate(factory);
 
+        int totalCount = countMCQ + countSAQ;
+
         // Prompt
-        String prompt = "Generate EXACTLY " + count + " distinct MCQ questions on topic: " + topicName +
-                " with difficulty: " + difficulty +
-                ". Return JSON ONLY in format of a JSON array with " + count + " objects. Format example:\n" +
-                "[{\"question\":\"...\",\"options\":[\"Option 1\",\"Option 2\",\"Option 3\",\"Option 4\"],\"answer\":\"A\"}]";
+        String prompt = "Generate a quiz on topic: " + topicName + " with difficulty: " + difficulty + ".\n" +
+                "The quiz must contain EXACTLY " + totalCount + " distinct questions in total:\n" +
+                "- " + countMCQ + " Multiple Choice Questions (MCQ)\n" +
+                "- " + countSAQ + " Short Answer Questions (SAQ)\n\n" +
+                "Return JSON ONLY in format of a JSON array with objects. Each object must have:\n" +
+                "1. \"type\": Either \"MCQ\" or \"SAQ\"\n" +
+                "2. \"question\": The question text\n" +
+                "3. \"options\": [ONLY for MCQ] An array of 4 strings\n" +
+                "4. \"answer\": [ONLY for MCQ] The string 'A', 'B', 'C', or 'D'. For SAQ, leave this field empty or omit it.\n\n"
+                +
+                "Format example:\n" +
+                "[\n" +
+                "  {\"type\":\"MCQ\",\"question\":\"...\",\"options\":[\"Op1\",\"Op2\",\"Op3\",\"Op4\"],\"answer\":\"A\"},\n"
+                +
+                "  {\"type\":\"SAQ\",\"question\":\"...\"}\n" +
+                "]";
 
         // Build Gemini request body
         JSONObject requestBody = new JSONObject();
@@ -43,6 +57,7 @@ public class GeminiService {
         parts.put(part);
         contentObj.put("parts", parts);
         contents.put(contentObj);
+        requestBody.put("contents", contents);
         requestBody.put("contents", contents);
 
         // Headers
@@ -81,7 +96,6 @@ public class GeminiService {
 
             System.out.println("Gemini Extracted Text: " + textResponse);
             String fullResponse = textResponse.trim();
-            System.out.println("Gemini Raw Response: " + fullResponse);
 
             // Remove markdown if present
             if (fullResponse.startsWith("```json")) {
@@ -108,7 +122,7 @@ public class GeminiService {
         } catch (Exception ex) {
             System.err.println("Gemini Error: " + ex.getMessage());
             ex.printStackTrace();
-            throw new RuntimeException("Failed to generate MCQs using Gemini", ex);
+            throw new RuntimeException("Failed to generate questions using Gemini", ex);
         }
     }
 

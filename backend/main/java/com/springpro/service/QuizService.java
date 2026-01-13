@@ -4,6 +4,7 @@ import com.springpro.entity.Course;
 import com.springpro.entity.Quiz;
 import com.springpro.entity.QuizAssignment;
 import com.springpro.entity.QuizQuestion;
+import com.springpro.entity.QuestionType;
 import com.springpro.entity.Topic;
 import com.springpro.repository.QuizAssignmentRepository;
 import com.springpro.repository.QuizQuestionRepository;
@@ -12,7 +13,6 @@ import com.springpro.repository.StudentRepository;
 import com.springpro.repository.TopicRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.springpro.exception.QuizAssignedException;
 
 import java.util.List;
 
@@ -37,7 +37,7 @@ public class QuizService {
     @Autowired
     private GeminiService geminiService;
 
-    public Quiz createQuiz(Long topicId, String difficulty, int count) {
+    public Quiz createQuiz(Long topicId, String difficulty, int countMCQ, int countSAQ) {
 
         Topic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new RuntimeException("Topic not found with id " + topicId));
@@ -51,8 +51,9 @@ public class QuizService {
 
         // Generate questions using Gemini AI
         System.out.println(
-                "Calling Gemini for topic: " + topic.getTitle() + ", difficulty: " + difficulty + ", count: " + count);
-        org.json.JSONArray questions = geminiService.generateMCQ(topic.getTitle(), difficulty, count);
+                "Calling Gemini for topic: " + topic.getTitle() + ", difficulty: " + difficulty +
+                        ", countMCQ: " + countMCQ + ", countSAQ: " + countSAQ);
+        org.json.JSONArray questions = geminiService.generateQuiz(topic.getTitle(), difficulty, countMCQ, countSAQ);
         System.out.println("Gemini returned " + questions.length() + " questions");
 
         for (int i = 0; i < questions.length(); i++) {
@@ -63,23 +64,38 @@ public class QuizService {
             qq.setQuiz(quiz);
             qq.setQuestion(q.getString("question"));
 
-            var opts = q.getJSONArray("options");
+            // Set type
+            String typeStr = q.optString("type", "MCQ");
+            QuestionType type = QuestionType.valueOf(typeStr.toUpperCase());
+            qq.setType(type);
 
-            qq.setOptionA(opts.getString(0));
-            qq.setOptionB(opts.getString(1));
-            qq.setOptionC(opts.getString(2));
-            qq.setOptionD(opts.getString(3));
+            if (type == QuestionType.MCQ) {
+                var opts = q.getJSONArray("options");
+                qq.setOptionA(opts.getString(0));
+                qq.setOptionB(opts.getString(1));
+                qq.setOptionC(opts.getString(2));
+                qq.setOptionD(opts.getString(3));
 
-            // Normalize correct answer to just the letter (A/B/C/D)
-            String correctAnswer = q.getString("answer").trim().toUpperCase();
-            // Extract just the first character if it's A, B, C, or D
-            if (correctAnswer.length() > 0) {
-                char firstChar = correctAnswer.charAt(0);
-                if (firstChar == 'A' || firstChar == 'B' || firstChar == 'C' || firstChar == 'D') {
-                    correctAnswer = String.valueOf(firstChar);
+                // Normalize correct answer to just the letter (A/B/C/D)
+                String correctAnswer = q.getString("answer").trim().toUpperCase();
+                // Extract just the first character if it's A, B, C, or D
+                if (correctAnswer.length() > 0) {
+                    char firstChar = correctAnswer.charAt(0);
+                    if (firstChar == 'A' || firstChar == 'B' || firstChar == 'C' || firstChar == 'D') {
+                        correctAnswer = String.valueOf(firstChar);
+                    }
                 }
+                qq.setCorrectAnswer(correctAnswer);
+            } else {
+                // For SAQ, options and correctAnswer are not preset by Gemini
+                // correct answer for SAQ would be manually graded or could have a sample answer
+                // but per user request, just the question for SAQ.
+                qq.setOptionA(null);
+                qq.setOptionB(null);
+                qq.setOptionC(null);
+                qq.setOptionD(null);
+                qq.setCorrectAnswer(null);
             }
-            qq.setCorrectAnswer(correctAnswer);
 
             quizQuestionRepository.save(qq);
         }
@@ -96,9 +112,8 @@ public class QuizService {
     }
 
     public void deleteQuiz(Long id) {
-    quizRepository.deleteById(id);
-}
-
+        quizRepository.deleteById(id);
+    }
 
     public List<QuizQuestion> getQuestionsByQuizId(Long quizId) {
         return quizQuestionRepository.findByQuizId(quizId);
