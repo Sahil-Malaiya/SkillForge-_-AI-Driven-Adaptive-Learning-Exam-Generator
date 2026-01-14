@@ -549,8 +549,8 @@ const QuizManagement = () => {
                                                             marginBottom: '12px',
                                                             padding: '14px 16px',
                                                             borderRadius: '12px',
-                                                            background: isCorrect 
-                                                                ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)' 
+                                                            background: isCorrect
+                                                                ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)'
                                                                 : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                                                             border: isCorrect ? '2px solid #28a745' : '2px solid #e9ecef',
                                                             display: 'flex',
@@ -564,7 +564,7 @@ const QuizManagement = () => {
                                                             width: '28px',
                                                             height: '28px',
                                                             borderRadius: '50%',
-                                                            background: isCorrect 
+                                                            background: isCorrect
                                                                 ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'
                                                                 : 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)',
                                                             color: isCorrect ? 'white' : '#6c757d',
@@ -586,6 +586,7 @@ const QuizManagement = () => {
                                                             }}
                                                         >
                                                             {optionText}
+                                                        </Typography>
                                                         {isCorrect && (
                                                             <Chip
                                                                 label="Correct"
@@ -594,7 +595,7 @@ const QuizManagement = () => {
                                                                 sx={{ ml: 2, height: '20px' }}
                                                             />
                                                         )}
-                                                    </Typography>
+                                                    </div>
                                                 );
                                             })
                                         )}
