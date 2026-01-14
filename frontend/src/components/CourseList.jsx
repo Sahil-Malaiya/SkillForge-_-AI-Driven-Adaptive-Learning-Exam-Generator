@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import CourseCard from './CourseCard';
 import './CourseList.css';
 
-function CourseList({ courses, onEdit, onDelete, onManageSubjects }) {
+function CourseList({ courses, onEdit, onDelete, onManageSubjects, hideSearch = false }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [difficultyFilter, setDifficultyFilter] = useState('ALL');
 
@@ -24,6 +24,9 @@ function CourseList({ courses, onEdit, onDelete, onManageSubjects }) {
             hard: courses.filter(c => c.difficultyLevel === 'HARD').length,
         };
     }, [courses]);
+
+    // Use filtered courses if hideSearch is false, otherwise use courses directly
+    const displayCourses = hideSearch ? courses : filteredCourses;
 
     return (
         <div className="course-list-container">
@@ -78,60 +81,64 @@ function CourseList({ courses, onEdit, onDelete, onManageSubjects }) {
                 </div>
             </div>
 
-            {/* Search and Filter Bar */}
-            <div className="filter-bar">
-                <div className="search-box">
-                    <svg className="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Search courses..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="search-input"
-                    />
-                    {searchTerm && (
-                        <button
-                            className="clear-search"
-                            onClick={() => setSearchTerm('')}
-                            aria-label="Clear search"
-                        >
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            {/* Search and Filter Bar - Only show if hideSearch is false */}
+            {!hideSearch && (
+                <>
+                    <div className="filter-bar">
+                        <div className="search-box">
+                            <svg className="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                        </button>
-                    )}
-                </div>
+                            <input
+                                type="text"
+                                placeholder="Search courses..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="search-input"
+                            />
+                            {searchTerm && (
+                                <button
+                                    className="clear-search"
+                                    onClick={() => setSearchTerm('')}
+                                    aria-label="Clear search"
+                                >
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
 
-                <div className="filter-group">
-                    <label htmlFor="difficulty-filter" className="filter-label">
-                        <svg className="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                        </svg>
-                        Filter:
-                    </label>
-                    <select
-                        id="difficulty-filter"
-                        value={difficultyFilter}
-                        onChange={(e) => setDifficultyFilter(e.target.value)}
-                        className="filter-select"
-                    >
-                        <option value="ALL">All Levels</option>
-                        <option value="EASY">Easy</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="HARD">Hard</option>
-                    </select>
-                </div>
-            </div>
+                        <div className="filter-group">
+                            <label htmlFor="difficulty-filter" className="filter-label">
+                                <svg className="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                                Filter:
+                            </label>
+                            <select
+                                id="difficulty-filter"
+                                value={difficultyFilter}
+                                onChange={(e) => setDifficultyFilter(e.target.value)}
+                                className="filter-select"
+                            >
+                                <option value="ALL">All Levels</option>
+                                <option value="EASY">Easy</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="HARD">Hard</option>
+                            </select>
+                        </div>
+                    </div>
 
-            {/* Results Count */}
-            <div className="results-info">
-                Showing <strong>{filteredCourses.length}</strong> of <strong>{courses.length}</strong> courses
-            </div>
+                    {/* Results Count */}
+                    <div className="results-info">
+                        Showing <strong>{displayCourses.length}</strong> of <strong>{courses.length}</strong> courses
+                    </div>
+                </>
+            )}
 
             {/* Course Cards Grid */}
-            {filteredCourses.length === 0 ? (
+            {displayCourses.length === 0 ? (
                 <div className="empty-state">
                     <svg className="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -147,7 +154,7 @@ function CourseList({ courses, onEdit, onDelete, onManageSubjects }) {
                 </div>
             ) : (
                 <div className="courses-grid">
-                    {filteredCourses.map((course) => (
+                    {displayCourses.map((course) => (
                         <CourseCard
                             key={course.id}
                             course={course}

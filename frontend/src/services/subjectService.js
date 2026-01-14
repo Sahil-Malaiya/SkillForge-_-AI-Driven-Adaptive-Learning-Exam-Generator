@@ -23,6 +23,23 @@ export const subjectService = {
         }
     },
 
+    getSubjectById: async (id) => {
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader()
+                }
+            });
+            if (!response.ok) throw new Error('Failed to fetch subject');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching subject:', error);
+            throw error;
+        }
+    },
+
     createSubject: async (subjectData) => {
         try {
             const response = await fetch(API_URL, {

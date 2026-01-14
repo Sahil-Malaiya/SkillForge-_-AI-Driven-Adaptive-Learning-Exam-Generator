@@ -7,6 +7,7 @@ import './Performance.css';
 function Performance() {
     const user = authService.getCurrentUser();
     const studentId = user?.userId || user?.id || user?.user?.id;
+    const userName = user?.fullName || user?.name || 'Student';
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -28,165 +29,338 @@ function Performance() {
         return () => { mounted = false; };
     }, [studentId]);
 
-    // Draw charts whenever stats update
     useEffect(() => {
         if (!stats) return;
-        // delay briefly to ensure canvas in DOM
-        setTimeout(() => drawCharts(stats), 50);
+        setTimeout(() => drawCharts(stats), 100);
     }, [stats]);
-
-    // Grading helpers (same rules as QuizResult)
-    const getBucketLabel = (pct) => {
-        if (pct < 50) return 'Low / Below Average';
-        if (pct <= 75) return 'Average';
-        if (pct < 90) return 'Good';
-        if (pct <= 95) return 'Very Good';
-        return 'Top 1% / Excellent';
-    };
-
-    const getBucketColor = (pct) => {
-        if (pct >= 90) return '#28a745';
-        if (pct >= 75) return '#0d6efd';
-        if (pct >= 50) return '#fd7e14';
-        return '#dc3545';
-    };
 
     const safeNumber = (n, fallback = 0) => {
         const num = Number(n);
         return Number.isFinite(num) ? num : fallback;
     };
 
-    // Render
+    const getPerformanceColor = (percentage) => {
+        if (percentage >= 80) return '#059669';
+        if (percentage >= 60) return '#10b981';
+        if (percentage >= 40) return '#f59e0b';
+        return '#ef4444';
+    };
+
+    const getPerformanceLevel = (percentage) => {
+        if (percentage >= 80) return 'Excellent';
+        if (percentage >= 60) return 'Good';
+        if (percentage >= 40) return 'Average';
+        return 'Needs Work';
+    };
+
+    const getPerformanceGrade = (percentage) => {
+        if (percentage >= 90) return 'A+';
+        if (percentage >= 80) return 'A';
+        if (percentage >= 70) return 'B';
+        if (percentage >= 60) return 'C';
+        if (percentage >= 50) return 'D';
+        return 'F';
+    };
+
+    const calculateTotalScore = (attempt) => {
+        if (attempt.answers && Array.isArray(attempt.answers)) {
+            return attempt.answers.reduce((sum, answer) => {
+                const marks = safeNumber(answer.marksObtained, 0);
+                return sum + marks;
+            }, 0);
+        }
+        return safeNumber(attempt.score, 0);
+    };
+
+    const calculateOverallStats = () => {
+        if (!stats?.attempts || stats.attempts.length === 0) {
+            return { totalScore: 0, totalQuestions: 0, avgPercentage: 0, totalAttempts: 0 };
+        }
+
+        let totalScore = 0;
+        let totalQuestions = 0;
+
+        stats.attempts.forEach(attempt => {
+            totalScore += calculateTotalScore(attempt);
+            totalQuestions += safeNumber(attempt.totalQuestions ?? attempt.total, 0);
+        });
+
+        return {
+            totalScore,
+            totalQuestions,
+            avgPercentage: totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0,
+            totalAttempts: stats.attempts.length
+        };
+    };
+
+    const calculateSubjectPerformance = () => {
+        if (!stats?.attempts || stats.attempts.length === 0) return [];
+
+        const subjectMap = {};
+        stats.attempts.forEach(attempt => {
+            const subject = attempt.quiz?.topic?.subject?.name ||
+                attempt.quiz?.topic?.course?.name ||
+                'General';
+
+            if (!subjectMap[subject]) {
+                subjectMap[subject] = { name: subject, totalScore: 0, totalQuestions: 0, attempts: 0 };
+            }
+
+            const score = calculateTotalScore(attempt);
+            const total = safeNumber(attempt.totalQuestions ?? attempt.total, 0);
+
+            if (total > 0) {
+                subjectMap[subject].totalScore += score;
+                subjectMap[subject].totalQuestions += total;
+                subjectMap[subject].attempts += 1;
+            }
+        });
+
+        return Object.values(subjectMap).map(subject => ({
+            ...subject,
+            avgPercentage: subject.totalQuestions > 0
+                ? Math.round((subject.totalScore / subject.totalQuestions) * 100)
+                : 0
+        }));
+    };
+
+    const overallStats = calculateOverallStats();
+    const subjectPerformance = calculateSubjectPerformance();
+    const overallPercentage = overallStats.avgPercentage;
+
     return (
         <div className="dashboard-layout">
             <Sidebar />
             <div className="main-content">
                 <div className="performance-page">
-                    <div className="performance-header">
-                        <h2>Your Performance</h2>
-                        {loading && <div className="muted">Loading...</div>}
-                        {error && <div className="error">{error}</div>}
+                    {/* Page Header */}
+                    <div className="page-header">
+                        <div>
+                            <h1>Performance Dashboard</h1>
+                            <p>Track your quiz performance and progress</p>
+                        </div>
                     </div>
+
+                    {loading && <div className="loading-state">Loading performance data...</div>}
+                    {error && <div className="error-state">{error}</div>}
 
                     {!loading && !error && (
                         <>
-                            <div className="summary-cards">
-                                <div className="card">
-                                    <div className="card-icon">🎯</div>
-                                    <div className="card-body">
-                                        <div className="card-title">Total Attempts</div>
-                                        <div className="card-value">{safeNumber(stats?.totalAttempts, 0)}</div>
+                            {/* Stats Overview */}
+                            <div className="stats-overview">
+                                <div className="stat-card">
+                                    <div className="stat-icon" style={{ background: getPerformanceColor(overallPercentage) + '15', color: getPerformanceColor(overallPercentage) }}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M3 3v18h18" />
+                                            <path d="M18 17V9" />
+                                            <path d="M13 17V5" />
+                                            <path d="M8 17v-3" />
+                                        </svg>
+                                    </div>
+                                    <div className="stat-info">
+                                        <span className="stat-label">Overall Score</span>
+                                        <span className="stat-value" style={{ color: getPerformanceColor(overallPercentage) }}>
+                                            {overallPercentage}%
+                                        </span>
+                                        <span className="stat-grade">{getPerformanceGrade(overallPercentage)}</span>
                                     </div>
                                 </div>
 
-                                <div className="card">
-                                    <div className="card-icon">📈</div>
-                                    <div className="card-body">
-                                        <div className="card-title">Average Score</div>
-                                        <div className="card-value">{safeNumber(stats?.avgScore, 0)}%</div>
+                                <div className="stat-card">
+                                    <div className="stat-icon" style={{ background: '#10b98115', color: '#10b981' }}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M20 6L9 17l-5-5" />
+                                        </svg>
+                                    </div>
+                                    <div className="stat-info">
+                                        <span className="stat-label">Correct Answers</span>
+                                        <span className="stat-value">{overallStats.totalScore}/{overallStats.totalQuestions}</span>
+                                        <span className="stat-grade">{overallPercentage}% Accuracy</span>
                                     </div>
                                 </div>
 
-                                <div className="card">
-                                    <div className="card-icon">🔍</div>
-                                    <div className="card-body">
-                                        <div className="card-title">Accuracy</div>
-                                        {(() => {
-                                            const acc = safeNumber(stats?.accuracy, 0);
-                                            const color = getBucketColor(acc);
-                                            return (
-                                                <div className="card-value-row">
-                                                    <div className="card-value" style={{ color }}>{acc}%</div>
-                                                    <div className="card-badge" style={{ background: color }}>{getBucketLabel(acc)}</div>
-                                                </div>
-                                            );
-                                        })()}
+                                <div className="stat-card">
+                                    <div className="stat-icon" style={{ background: '#8b5cf615', color: '#8b5cf6' }}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <path d="M14 2v6h6" />
+                                            <path d="M16 13H8" />
+                                            <path d="M16 17H8" />
+                                            <path d="M10 9H8" />
+                                        </svg>
+                                    </div>
+                                    <div className="stat-info">
+                                        <span className="stat-label">Total Quizzes</span>
+                                        <span className="stat-value">{overallStats.totalAttempts}</span>
+                                        <span className="stat-grade">Completed</span>
+                                    </div>
+                                </div>
+
+                                <div className="stat-card">
+                                    <div className="stat-icon" style={{ background: '#3b82f615', color: '#3b82f6' }}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <path d="M12 6v6l4 2" />
+                                        </svg>
+                                    </div>
+                                    <div className="stat-info">
+                                        <span className="stat-label">Performance Level</span>
+                                        <span className="stat-value" style={{ color: getPerformanceColor(overallPercentage) }}>
+                                            {getPerformanceLevel(overallPercentage)}
+                                        </span>
+                                        <div className="level-bar">
+                                            <div className="level-bar-fill" style={{
+                                                width: `${overallPercentage}%`,
+                                                background: getPerformanceColor(overallPercentage)
+                                            }}></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="attempts-section">
-                                <h3>Attempts History</h3>
-                                {(!stats?.attempts || stats.attempts.length === 0) ? (
-                                    <div className="no-data">No attempts yet. Take quizzes to see your history here.</div>
-                                ) : (
-                                    <div className="attempts-table">
-                                        <div className="attempts-head">
-                                            <div>Quiz</div>
-                                            <div>Score</div>
-                                            <div>Percentage</div>
-                                            <div>Date</div>
-                                            <div>Status</div>
-                                        </div>
-                                        {stats.attempts.map((a, idx) => {
-                                            const score = safeNumber(a.score, 0);
-                                            const totalQ = safeNumber(a.totalQuestions ?? a.total ?? (a.questionCount), 0);
-                                            const pct = totalQ > 0 ? Math.round((score / totalQ) * 100) : safeNumber(a.percentage ?? a.accuracy ?? 0);
-                                            const color = getBucketColor(pct);
-                                            const status = getBucketLabel(pct);
-                                            const dateStr = a.attemptedAt ? new Date(a.attemptedAt).toLocaleString() : (a.date ? new Date(a.date).toLocaleString() : '—');
+                            {/* Subject Performance */}
+                            {subjectPerformance.length > 0 && (
+                                <div className="section">
+                                    <h2 className="section-title">Subject Performance</h2>
+                                    <div className="subject-list">
+                                        {subjectPerformance.map((subject, index) => (
+                                            <div key={index} className="subject-item">
+                                                <div className="subject-info">
+                                                    <span className="subject-name">{subject.name}</span>
+                                                    <span className="subject-meta">{subject.attempts} quiz{subject.attempts !== 1 ? 'zes' : ''} · {subject.totalScore}/{subject.totalQuestions} correct</span>
+                                                </div>
+                                                <div className="subject-performance">
+                                                    <div className="performance-bar">
+                                                        <div className="performance-bar-fill" style={{
+                                                            width: `${subject.avgPercentage}%`,
+                                                            background: getPerformanceColor(subject.avgPercentage)
+                                                        }}></div>
+                                                    </div>
+                                                    <span className="performance-percentage" style={{ color: getPerformanceColor(subject.avgPercentage) }}>
+                                                        {subject.avgPercentage}%
+                                                    </span>
+                                                    <span className="performance-badge" style={{
+                                                        background: getPerformanceColor(subject.avgPercentage),
+                                                        color: 'white'
+                                                    }}>
+                                                        {getPerformanceGrade(subject.avgPercentage)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Performance Chart */}
+                            {stats?.attempts && stats.attempts.length > 0 && (
+                                <div className="section">
+                                    <h2 className="section-title">Performance Trend</h2>
+                                    <div className="chart-container">
+                                        <canvas id="performanceChart" width="800" height="250"></canvas>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Recent Attempts */}
+                            {stats?.attempts && stats.attempts.length > 0 && (
+                                <div className="section">
+                                    <h2 className="section-title">Recent Attempts</h2>
+                                    <div className="attempts-list">
+                                        {stats.attempts.slice(0, 10).map((attempt, index) => {
+                                            const score = calculateTotalScore(attempt);
+                                            const total = safeNumber(attempt.totalQuestions ?? attempt.total, 0);
+                                            const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
 
                                             return (
-                                                <div key={a.id || idx} className="attempt-row" title={a.quiz?.title || a.name || 'Quiz Attempt'}>
-                                                    <div className="attempt-quiz">{a.quiz?.title || a.name || `Quiz ${idx + 1}`}</div>
-                                                    <div className="attempt-score">{score} / {totalQ}</div>
-                                                    <div className="attempt-pct">
-                                                        <div className="pct-text" style={{ color }}>{pct}%</div>
-                                                        <div className="pct-bar" aria-hidden>
-                                                            <div className="pct-fill" style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background: color }} />
+                                                <div key={attempt.id || index} className="attempt-item">
+                                                    <div className="attempt-main">
+                                                        <div className="attempt-title">
+                                                            {attempt.quiz?.title || `Quiz ${index + 1}`}
+                                                        </div>
+                                                        <div className="attempt-subject">
+                                                            {attempt.quiz?.topic?.subject?.name || attempt.quiz?.topic?.course?.name || 'General'}
                                                         </div>
                                                     </div>
-                                                    <div className="attempt-date">{dateStr}</div>
-                                                    <div className="attempt-status"><span className="status-badge" style={{ background: color }}>{status}</span></div>
+                                                    <div className="attempt-stats">
+                                                        <span className="attempt-score">{score}/{total}</span>
+                                                        <span className="attempt-percentage" style={{ color: getPerformanceColor(percentage) }}>
+                                                            {percentage}%
+                                                        </span>
+                                                        <span className="attempt-badge" style={{
+                                                            background: getPerformanceColor(percentage),
+                                                            color: 'white'
+                                                        }}>
+                                                            {getPerformanceGrade(percentage)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
                                     </div>
-                                )}
-                            </div>
-                            {/* Charts & Instructor View */}
-                            <div className="insights-section">
-                                <div className="charts-grid">
-                                    <div className="chart-card">
-                                        <h4>Topic-wise Performance</h4>
-                                        <canvas id="topicPie" width="300" height="300" />
-                                        <div className="chart-legend" id="topicLegend" />
-                                    </div>
-
-                                    <div className="chart-card">
-                                        <h4>Adaptive Level Trend</h4>
-                                        <canvas id="trendLine" width="500" height="260" />
-                                        <div className="trend-legend">Beginner → Advanced</div>
-                                    </div>
                                 </div>
+                            )}
 
-                                <div className="instructor-card">
-                                    <h4>Student Strengths & Weaknesses (by Topic)</h4>
-                                    <div className="strengths-table">
-                                        <div className="strengths-head"><div>Topic</div><div>Avg %</div><div>Assessment</div></div>
-                                        {(() => {
-                                            const attempts = stats?.attempts || [];
-                                            const grouped = {};
-                                            attempts.forEach(a => {
-                                                const topic = a.quiz?.topic?.title || a.topicName || a.quiz?.title || 'General';
-                                                grouped[topic] = grouped[topic] || { total: 0, count: 0 };
-                                                const score = Number(a.score ?? 0);
-                                                const total = Number(a.totalQuestions ?? a.total ?? 0) || 0;
-                                                const pct = total > 0 ? (score / total) * 100 : Number(a.percentage ?? a.accuracy ?? 0);
-                                                grouped[topic].total += Number.isFinite(pct) ? pct : 0;
-                                                grouped[topic].count += 1;
-                                            });
-                                            const rows = Object.keys(grouped).map(t => ({ topic: t, avg: grouped[t].count ? Math.round(grouped[t].total / grouped[t].count) : 0 }));
-                                            if (rows.length === 0) return <div className="no-data">No topic data available.</div>;
-                                            return rows.map((r, idx) => (
-                                                <div className="strengths-row" key={idx}>
-                                                    <div className="topic-name">{r.topic}</div>
-                                                    <div className="topic-avg">{r.avg}%</div>
-                                                    <div className="topic-assess"><span className="status-badge" style={{ background: getBucketColor(r.avg) }}>{r.avg >= 75 ? 'Strength' : 'Weakness'}</span></div>
-                                                </div>
-                                            ));
-                                        })()}
-                                    </div>
+                            {/* Performance Insights */}
+                            <div className="section">
+                                <h2 className="section-title">Insights</h2>
+                                <div className="insights-container">
+                                    {overallPercentage >= 80 ? (
+                                        <div className="insight-box success">
+                                            <div className="insight-icon">
+                                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <circle cx="12" cy="8" r="6" />
+                                                    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                                                </svg>
+                                            </div>
+                                            <div className="insight-content">
+                                                <strong>Excellent Work!</strong>
+                                                <p>You're performing exceptionally well. Keep up the great work!</p>
+                                            </div>
+                                        </div>
+                                    ) : overallPercentage >= 60 ? (
+                                        <div className="insight-box good">
+                                            <div className="insight-icon">
+                                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M7 10v12" />
+                                                    <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+                                                </svg>
+                                            </div>
+                                            <div className="insight-content">
+                                                <strong>Good Progress!</strong>
+                                                <p>You're doing well. Focus on areas where you can improve further.</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="insight-box needs-work">
+                                            <div className="insight-icon">
+                                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                                                </svg>
+                                            </div>
+                                            <div className="insight-content">
+                                                <strong>Keep Practicing!</strong>
+                                                <p>Stay consistent with your studies and you'll see improvement.</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {subjectPerformance.length > 0 && subjectPerformance.some(s => s.avgPercentage < 60) && (
+                                        <div className="insight-box info">
+                                            <div className="insight-icon">
+                                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+                                                    <path d="M9 18h6" />
+                                                    <path d="M10 22h4" />
+                                                </svg>
+                                            </div>
+                                            <div className="insight-content">
+                                                <strong>Focus Areas</strong>
+                                                <p>Consider reviewing: {subjectPerformance.filter(s => s.avgPercentage < 60).map(s => s.name).join(', ')}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </>
@@ -199,111 +373,100 @@ function Performance() {
 
 export default Performance;
 
-// Chart rendering side-effects
-// Keep separate so React render stays pure. Uses plain Canvas API to avoid new deps.
 function drawCharts(stats) {
-    if (!stats) return;
+    if (!stats?.attempts || stats.attempts.length === 0) return;
+
+    const calculateTotalScore = (attempt) => {
+        if (attempt.answers && Array.isArray(attempt.answers)) {
+            return attempt.answers.reduce((sum, answer) => {
+                const marks = Number(answer.marksObtained) || 0;
+                return sum + marks;
+            }, 0);
+        }
+        return Number(attempt.score) || 0;
+    };
+
     try {
-        const attempts = stats.attempts || [];
+        const canvas = document.getElementById('performanceChart');
+        if (!canvas || !canvas.getContext) return;
 
-        // Topic pie: count attempts per topic
-        const topicMap = {};
-        attempts.forEach(a => {
-            const topic = a.quiz?.topic?.title || a.topicName || a.quiz?.title || 'General';
-            topicMap[topic] = (topicMap[topic] || 0) + 1;
-        });
-        const topicCanvas = document.getElementById('topicPie');
-        const legendEl = document.getElementById('topicLegend');
-        if (topicCanvas && topicCanvas.getContext) {
-            const ctx = topicCanvas.getContext('2d');
-            ctx.clearRect(0, 0, topicCanvas.width, topicCanvas.height);
-            const items = Object.keys(topicMap);
-            const total = items.reduce((s, k) => s + topicMap[k], 0) || 1;
-            let start = 0;
-            legendEl && (legendEl.innerHTML = '');
-            items.forEach((k, i) => {
-                const value = topicMap[k];
-                const slice = (value / total) * Math.PI * 2;
-                const color = ['#0d6efd', '#28a745', '#fd7e14', '#6f42c1', '#20c997', '#dc3545'][i % 6];
-                ctx.beginPath();
-                ctx.moveTo(150, 150);
-                ctx.arc(150, 150, 100, start, start + slice);
-                ctx.closePath();
-                ctx.fillStyle = color;
-                ctx.fill();
-                // legend
-                if (legendEl) {
-                    const span = document.createElement('div');
-                    span.style.display = 'flex';
-                    span.style.alignItems = 'center';
-                    span.style.gap = '8px';
-                    span.style.marginTop = '6px';
-                    span.innerHTML = `<span style="display:inline-block;width:12px;height:12px;background:${color};border-radius:3px"></span><span>${k} (${value})</span>`;
-                    legendEl.appendChild(span);
-                }
-                start += slice;
-            });
-        }
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const padding = 40;
+        const chartWidth = width - padding * 2;
+        const chartHeight = height - padding * 2;
 
-        // Trend line: map attempts over time to level values
-        const trendCanvas = document.getElementById('trendLine');
-        if (trendCanvas && trendCanvas.getContext) {
-            const ctx = trendCanvas.getContext('2d');
-            ctx.clearRect(0, 0, trendCanvas.width, trendCanvas.height);
-            const sorted = attempts.slice().filter(a => a.attemptedAt || a.date || a.createdAt).sort((a, b) => new Date(a.attemptedAt || a.date || a.createdAt) - new Date(b.attemptedAt || b.date || b.createdAt));
-            if (sorted.length === 0) return;
-            const points = sorted.map(a => {
-                const total = Number(a.totalQuestions ?? a.total ?? 0) || 0;
-                const score = Number(a.score ?? 0);
-                const pct = total > 0 ? Math.round((score / total) * 100) : Math.round(Number(a.percentage ?? a.accuracy ?? 0));
-                // level: 1..4
-                const level = pct < 50 ? 1 : (pct <= 75 ? 2 : (pct < 90 ? 3 : 4));
-                return { t: new Date(a.attemptedAt || a.date || a.createdAt).getTime(), level, pct };
-            });
-            const times = points.map(p => p.t);
-            const minT = Math.min(...times);
-            const maxT = Math.max(...times);
-            const w = trendCanvas.width; const h = trendCanvas.height; const pad = 30;
-            // draw axes
-            ctx.strokeStyle = '#e6edf3'; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(w - pad, h - pad); ctx.stroke(); // x
-            ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, h - pad); ctx.stroke(); // y
-            // plot
-            ctx.lineWidth = 2; ctx.strokeStyle = '#0d6efd'; ctx.beginPath();
-            points.forEach((p, i) => {
-                const x = pad + ((p.t - minT) / (maxT - minT || 1)) * (w - 2 * pad);
-                const y = pad + (1 - (p.level - 1) / 3) * (h - 2 * pad);
-                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            });
+        const sortedAttempts = [...stats.attempts]
+            .sort((a, b) => new Date(a.submittedAt || a.attemptedAt || a.createdAt) - new Date(b.submittedAt || b.attemptedAt || b.createdAt))
+            .slice(-10);
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw grid
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+            const y = padding + (chartHeight / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(padding, y);
+            ctx.lineTo(width - padding, y);
             ctx.stroke();
-            // dots
-            points.forEach(p => {
-                const x = pad + ((p.t - minT) / (maxT - minT || 1)) * (w - 2 * pad);
-                const y = pad + (1 - (p.level - 1) / 3) * (h - 2 * pad);
-                ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fillStyle = getLevelColor(p.level); ctx.fill();
-            });
-            // y labels
-            ctx.fillStyle = '#374151'; ctx.font = '12px sans-serif';
-            ['Beginner', 'Medium', 'Hard', 'Advanced'].forEach((lab, i) => {
-                const y = pad + (1 - i / 3) * (h - 2 * pad);
-                ctx.fillText(lab, 6, y + 4);
-            });
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(`${100 - i * 25}%`, padding - 10, y + 4);
         }
+
+        // Draw line
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+
+        sortedAttempts.forEach((attempt, index) => {
+            const score = calculateTotalScore(attempt);
+            const total = Number(attempt.totalQuestions || attempt.total) || 1;
+            const percentage = (score / total) * 100;
+
+            const x = padding + (chartWidth / (sortedAttempts.length - 1 || 1)) * index;
+            const y = padding + chartHeight - (percentage / 100) * chartHeight;
+
+            if (index === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+
+        ctx.stroke();
+
+        // Draw points
+        sortedAttempts.forEach((attempt, index) => {
+            const score = calculateTotalScore(attempt);
+            const total = Number(attempt.totalQuestions || attempt.total) || 1;
+            const percentage = (score / total) * 100;
+
+            const x = padding + (chartWidth / (sortedAttempts.length - 1 || 1)) * index;
+            const y = padding + chartHeight - (percentage / 100) * chartHeight;
+
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, 2 * Math.PI);
+            ctx.fillStyle = '#8b5cf6';
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // X-axis labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Q${index + 1}`, x, height - padding + 18);
+        });
     } catch (e) {
-        // swallow chart errors
         console.warn('Chart draw failed', e);
     }
 }
-
-function getLevelColor(level) {
-    if (level <= 1) return '#dc3545';
-    if (level === 2) return '#fd7e14';
-    if (level === 3) return '#0d6efd';
-    return '#28a745';
-}
-
-// Hook into DOM updates
-setTimeout(() => {
-    // Observe stats changes by polling DOM for canvas presence; when found, attempt to draw using global window.statsIfNeeded
-    // This is a lightweight approach because this file is compiled into the SPA; drawing will be triggered by the component's effect below as well.
-}, 0);

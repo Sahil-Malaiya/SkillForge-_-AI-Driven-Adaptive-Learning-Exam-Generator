@@ -73,7 +73,7 @@ function StudentQuizzes() {
             const mapped = {
                 id: resp.quiz?.id || resp.id || quizId,
                 title: resp.quiz?.title || resp.quiz?.topic?.title || resp.title || `Quiz ${quizId}`,
-                timeLimit: resp.timeLimit || resp.quiz?.timeLimit || 15,
+                timeLimit: resp.timeLimit || resp.quiz?.timeLimit || quiz.duration || 15,
                 nextDifficulty: resp.nextDifficulty || resp.next_difficulty || nextDifficulty,
                 questions: Array.isArray(resp.questions)
                     ? resp.questions.map(q => ({
@@ -120,7 +120,6 @@ function StudentQuizzes() {
                 correctAnswers: correctAnswers !== undefined ? correctAnswers : null,
                 passed: resp.passed ?? (Number(score) >= 50),
                 questionResults: resp.questionResults || resp.question_results || [],
-                nextDifficulty: resp.nextDifficulty || resp.next_difficulty || 'MEDIUM',
                 nextDifficulty: resp.nextDifficulty || resp.next_difficulty || 'MEDIUM',
                 topicId: submission.topicId || (currentQuiz && currentQuiz.topicId),
                 quizId: submission.quizId || submission.id || submission.quiz?.id

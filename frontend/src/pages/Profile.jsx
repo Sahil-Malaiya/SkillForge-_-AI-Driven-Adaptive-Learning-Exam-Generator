@@ -105,6 +105,17 @@ function Profile() {
             setLoading(true);
             setError(null);
 
+            // Validate studentId
+            if (!studentId) {
+                console.error('Student ID is missing:', { user, studentId });
+                setError('Unable to save: Student ID not found. Please try logging in again.');
+                setLoading(false);
+                return;
+            }
+
+            console.log('Saving profile for student ID:', studentId);
+            console.log('Form data being sent:', formData);
+
             const res = await fetch(`http://localhost:8080/api/students/${studentId}`, {
                 method: 'PUT',
                 headers: {
@@ -114,16 +125,24 @@ function Profile() {
                 body: JSON.stringify(formData)
             });
 
-            if (!res.ok) throw new Error('Failed to update profile');
+            console.log('Response status:', res.status);
+            console.log('Response ok:', res.ok);
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error('Server error response:', errorText);
+                throw new Error(`Failed to update profile: ${res.status} - ${errorText}`);
+            }
 
             const data = await res.json();
+            console.log('Profile updated successfully:', data);
             setProfile(data);
             setIsEditing(false);
             setSuccessMessage('Profile updated successfully!');
             setTimeout(() => setSuccessMessage(''), 3000);
         } catch (err) {
-            console.error(err);
-            setError('Failed to update profile');
+            console.error('Error saving profile:', err);
+            setError(err.message || 'Failed to update profile. Please try again.');
         } finally {
             setLoading(false);
         }

@@ -300,7 +300,7 @@ const QuizManagement = () => {
             ) : (
                 <Grid container spacing={3}>
                     {quizzes.map((quiz) => (
-                        <Grid item xs={12} md={6} key={quiz.id}>
+                        <Grid item xs={12} sm={6} md={4} lg={3} key={quiz.id}>
                             <Card
                                 elevation={3}
                                 sx={{
@@ -327,38 +327,22 @@ const QuizManagement = () => {
                                 }}
                             >
                                 <CardContent sx={{ flexGrow: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
-                                        <div style={{
-                                            width: '48px',
-                                            height: '48px',
-                                            borderRadius: '12px',
-                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: 0
-                                        }}>
-                                            <svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                                            </svg>
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e3c72', mb: 0.5 }}>
-                                                {quiz.topic ? quiz.topic.title : 'Unknown Topic'}
-                                            </Typography>
-                                        </div>
-                                    </div>
+                                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#1e3c72', mb: 2, fontSize: '22px' }}>
+                                        {quiz.topic ? quiz.topic.title : 'Unknown Topic'}
+                                    </Typography>
 
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '20px' }}>
                                         <Chip
                                             label={quiz.difficulty}
                                             sx={{
-                                                bgcolor: quiz.difficulty === 'Easy' ? '#667eea' :
-                                                    quiz.difficulty === 'Medium' ? '#fd7e14' : '#dc3545',
+                                                bgcolor: quiz.difficulty === 'Easy' ? '#22c55e' :
+                                                    quiz.difficulty === 'Medium' ? '#eab308' : '#ef4444',
                                                 color: 'white',
-                                                fontWeight: 600,
+                                                fontWeight: 700,
                                                 fontSize: '13px',
-                                                height: '28px'
+                                                height: '28px',
+                                                boxShadow: quiz.difficulty === 'Easy' ? '0 2px 8px rgba(34, 197, 94, 0.3)' :
+                                                    quiz.difficulty === 'Medium' ? '0 2px 8px rgba(234, 179, 8, 0.3)' : '0 2px 8px rgba(239, 68, 68, 0.3)'
                                             }}
                                             size="small"
                                         />
@@ -371,13 +355,20 @@ const QuizManagement = () => {
                                             </Typography>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
                                         <Button
                                             variant="contained"
                                             fullWidth
                                             onClick={() => handleViewQuestions(quiz)}
+                                            startIcon={
+                                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            }
                                             sx={{
                                                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                fontWeight: 600,
                                                 '&:hover': {
                                                     background: 'linear-gradient(135deg, #5568d3 0%, #6a4193 100%)'
                                                 }
@@ -385,31 +376,51 @@ const QuizManagement = () => {
                                         >
                                             View Questions
                                         </Button>
-                                        <Button
-                                            variant="contained"
-                                            color="error"
-                                            onClick={() => handleDelete(quiz.id)}
-                                        >
-                                            Delete
-                                        </Button>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <Button
+                                                variant="outlined"
+                                                fullWidth
+                                                startIcon={
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                }
+                                                sx={{
+                                                    borderColor: '#3b82f6',
+                                                    color: '#3b82f6',
+                                                    fontWeight: 600,
+                                                    '&:hover': {
+                                                        borderColor: '#2563eb',
+                                                        bgcolor: '#eff6ff'
+                                                    }
+                                                }}
+                                                onClick={() => handleOpenAssignDialog(quiz)}
+                                            >
+                                                Assign
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                fullWidth
+                                                startIcon={
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                }
+                                                sx={{
+                                                    borderColor: '#ef4444',
+                                                    color: '#ef4444',
+                                                    fontWeight: 600,
+                                                    '&:hover': {
+                                                        borderColor: '#dc2626',
+                                                        bgcolor: '#fef2f2'
+                                                    }
+                                                }}
+                                                onClick={() => handleDelete(quiz.id)}
+                                            >
+                                                Delete
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <Button
-                                        variant="outlined"
-                                        fullWidth
-                                        sx={{
-                                            mt: 1,
-                                            borderColor: '#667eea',
-                                            color: '#667eea',
-                                            '&:hover': {
-                                                borderColor: '#764ba2',
-                                                color: '#764ba2',
-                                                bgcolor: 'rgba(102, 126, 234, 0.04)'
-                                            }
-                                        }}
-                                        onClick={() => handleOpenAssignDialog(quiz)}
-                                    >
-                                        Assign to Students
-                                    </Button>
                                 </CardContent>
                             </Card>
                         </Grid>
@@ -447,10 +458,12 @@ const QuizManagement = () => {
                         label={selectedQuiz?.difficulty}
                         size="small"
                         sx={{
-                            bgcolor: 'rgba(255, 255, 255, 0.2)',
+                            bgcolor: selectedQuiz?.difficulty === 'Easy' ? 'rgba(34, 197, 94, 0.9)' :
+                                selectedQuiz?.difficulty === 'Medium' ? 'rgba(234, 179, 8, 0.9)' : 'rgba(239, 68, 68, 0.9)',
                             color: 'white',
-                            fontWeight: 600,
-                            borderRadius: '12px'
+                            fontWeight: 700,
+                            borderRadius: '12px',
+                            fontSize: '13px'
                         }}
                     />
                 </DialogTitle>
@@ -549,8 +562,8 @@ const QuizManagement = () => {
                                                             marginBottom: '12px',
                                                             padding: '14px 16px',
                                                             borderRadius: '12px',
-                                                            background: isCorrect 
-                                                                ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)' 
+                                                            background: isCorrect
+                                                                ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)'
                                                                 : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                                                             border: isCorrect ? '2px solid #28a745' : '2px solid #e9ecef',
                                                             display: 'flex',
@@ -564,7 +577,7 @@ const QuizManagement = () => {
                                                             width: '28px',
                                                             height: '28px',
                                                             borderRadius: '50%',
-                                                            background: isCorrect 
+                                                            background: isCorrect
                                                                 ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'
                                                                 : 'linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)',
                                                             color: isCorrect ? 'white' : '#6c757d',
@@ -586,6 +599,7 @@ const QuizManagement = () => {
                                                             }}
                                                         >
                                                             {optionText}
+                                                        </Typography>
                                                         {isCorrect && (
                                                             <Chip
                                                                 label="Correct"
@@ -594,7 +608,7 @@ const QuizManagement = () => {
                                                                 sx={{ ml: 2, height: '20px' }}
                                                             />
                                                         )}
-                                                    </Typography>
+                                                    </div>
                                                 );
                                             })
                                         )}

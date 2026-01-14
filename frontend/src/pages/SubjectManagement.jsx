@@ -17,6 +17,8 @@ function SubjectManagement() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortFilter, setSortFilter] = useState('ALL');
 
     useEffect(() => {
         fetchCourse();
@@ -147,6 +149,18 @@ function SubjectManagement() {
         setError('');
     };
 
+    // Filter subjects based on search and sort
+    const filteredSubjects = subjects
+        .filter(subject =>
+            subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (subject.description && subject.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        )
+        .sort((a, b) => {
+            if (sortFilter === 'NAME_ASC') return a.name.localeCompare(b.name);
+            if (sortFilter === 'NAME_DESC') return b.name.localeCompare(a.name);
+            return 0; // ALL - keep original order
+        });
+
     return (
         <div className="content-body">
             <button
@@ -187,25 +201,77 @@ function SubjectManagement() {
                     <p style={{ margin: 0, fontSize: '14px', color: '#6c757d' }}>Course: {course?.title || 'Loading...'}</p>
                 </div>
 
-                <button
-                    onClick={handleOpenModal}
-                    style={{
-                        padding: '12px 24px',
-                        background: '#667eea',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
-                        transition: 'all 0.3s'
-                    }}
-                    onMouseOver={(e) => e.target.style.background = '#764ba2'}
-                    onMouseOut={(e) => e.target.style.background = '#667eea'}
-                >
-                    + Add New Subject
-                </button>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    {/* Search Bar */}
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type="text"
+                            placeholder="Search Subjects..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                padding: '10px 40px 10px 15px',
+                                border: '1px solid #e0e0e0',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                width: '250px',
+                                outline: 'none'
+                            }}
+                        />
+                        <svg
+                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '20px', height: '20px', color: '#9e9e9e' }}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+
+                    {/* Filter Dropdown */}
+                    <select
+                        value={sortFilter}
+                        onChange={(e) => setSortFilter(e.target.value)}
+                        style={{
+                            padding: '10px 35px 10px 15px',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            background: '#fff',
+                            appearance: 'none',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239e9e9e' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 12px center'
+                        }}
+                    >
+                        <option value="ALL">All Subjects</option>
+                        <option value="NAME_ASC">Name (A-Z)</option>
+                        <option value="NAME_DESC">Name (Z-A)</option>
+                    </select>
+
+                    {/* Add New Subject Button */}
+                    <button
+                        onClick={handleOpenModal}
+                        style={{
+                            padding: '12px 24px',
+                            background: '#667eea',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+                            transition: 'all 0.3s'
+                        }}
+                        onMouseOver={(e) => e.target.style.background = '#764ba2'}
+                        onMouseOut={(e) => e.target.style.background = '#667eea'}
+                    >
+                        + Add New Subject
+                    </button>
+                </div>
             </div>
 
             {error && (
@@ -214,7 +280,7 @@ function SubjectManagement() {
 
             {/* Subjects Grid */}
             <div style={{ marginTop: '24px' }}>
-                {subjects.length === 0 ? (
+                {filteredSubjects.length === 0 ? (
                     <div style={{
                         textAlign: 'center',
                         padding: '60px 20px',
@@ -222,7 +288,11 @@ function SubjectManagement() {
                         borderRadius: '12px',
                         color: '#7f8c8d'
                     }}>
-                        <p style={{ fontSize: '16px', margin: 0 }}>No subjects found. Create your first subject above!</p>
+                        <p style={{ fontSize: '16px', margin: 0 }}>
+                            {subjects.length === 0
+                                ? 'No subjects found. Create your first subject above!'
+                                : 'No subjects match your search. Try a different search term.'}
+                        </p>
                     </div>
                 ) : (
                     <div style={{
@@ -230,7 +300,7 @@ function SubjectManagement() {
                         gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
                         gap: '20px'
                     }}>
-                        {subjects.map(subject => (
+                        {filteredSubjects.map(subject => (
                             <div key={subject.id} className="subject-card">
                                 <div className="subject-card-header"></div>
                                 <div className="subject-card-body">

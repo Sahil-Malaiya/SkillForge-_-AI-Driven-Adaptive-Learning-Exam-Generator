@@ -15,6 +15,7 @@ function CourseManagement() {
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [difficultyFilter, setDifficultyFilter] = useState('ALL');
 
     useEffect(() => {
         fetchCourses();
@@ -142,6 +143,13 @@ function CourseManagement() {
         setError('');
     };
 
+    // Filter courses based on search and difficulty
+    const filteredCourses = courses.filter(course => {
+        const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesDifficulty = difficultyFilter === 'ALL' || course.difficultyLevel === difficultyFilter;
+        return matchesSearch && matchesDifficulty;
+    });
+
     return (
         <div className="content-body">
             {/* Header Section */}
@@ -170,7 +178,7 @@ function CourseManagement() {
                                 border: '1px solid #e0e0e0',
                                 borderRadius: '8px',
                                 fontSize: '14px',
-                                width: '300px',
+                                width: '250px',
                                 outline: 'none'
                             }}
                         />
@@ -183,6 +191,30 @@ function CourseManagement() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
+
+                    {/* Filter Dropdown */}
+                    <select
+                        value={difficultyFilter}
+                        onChange={(e) => setDifficultyFilter(e.target.value)}
+                        style={{
+                            padding: '10px 35px 10px 15px',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            background: '#fff',
+                            appearance: 'none',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239e9e9e' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 12px center'
+                        }}
+                    >
+                        <option value="ALL">All Levels</option>
+                        <option value="EASY">Easy</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HARD">Hard</option>
+                    </select>
 
                     {/* Add New Course Button */}
                     <button
@@ -213,12 +245,11 @@ function CourseManagement() {
 
             {/* Course List */}
             <CourseList
-                courses={courses.filter(course =>
-                    course.title.toLowerCase().includes(searchTerm.toLowerCase())
-                )}
+                courses={filteredCourses}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onManageSubjects={handleManageSubjects}
+                hideSearch={true}
             />
 
             {/* Modal for Create/Edit Course */}

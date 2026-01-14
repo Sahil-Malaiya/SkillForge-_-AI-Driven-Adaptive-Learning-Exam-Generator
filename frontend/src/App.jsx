@@ -6,7 +6,9 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import Profile from './pages/Profile';
-import MyCourses from './pages/MyCourses';
+import StudentCourses from './pages/StudentCourses';
+import StudentSubjects from './pages/StudentSubjects';
+import StudentTopics from './pages/StudentTopics';
 import AIQuiz from './pages/AIQuiz';
 import StudentQuizzes from './pages/StudentQuizzes';
 import Performance from './pages/Performance';
@@ -62,7 +64,23 @@ function App() {
                     path="/student-dashboard/my-courses"
                     element={
                         <PrivateRoute>
-                            <MyCourses />
+                            <StudentCourses />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/student-dashboard/my-courses/:courseId/subjects"
+                    element={
+                        <PrivateRoute>
+                            <StudentSubjects />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/student-dashboard/my-courses/:courseId/subjects/:subjectId/topics"
+                    element={
+                        <PrivateRoute>
+                            <StudentTopics />
                         </PrivateRoute>
                     }
                 />
