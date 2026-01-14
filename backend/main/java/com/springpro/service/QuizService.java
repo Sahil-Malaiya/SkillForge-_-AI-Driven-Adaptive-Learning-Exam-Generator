@@ -51,12 +51,21 @@ public class QuizService {
 
         quiz = quizRepository.save(quiz);
 
-        // Generate questions using Gemini AI
-        System.out.println(
-                "Calling Gemini for topic: " + topic.getTitle() + ", difficulty: " + difficulty +
-                        ", countMCQ: " + countMCQ + ", countSAQ: " + countSAQ);
-        org.json.JSONArray questions = geminiService.generateQuiz(topic.getTitle(), difficulty, countMCQ, countSAQ);
-        System.out.println("Gemini returned " + questions.length() + " questions");
+        org.json.JSONArray questions = null;
+
+        try {
+            // Try to generate questions using Gemini AI
+            System.out.println(
+                    "Calling Gemini for topic: " + topic.getTitle() + ", difficulty: " + difficulty +
+                            ", countMCQ: " + countMCQ + ", countSAQ: " + countSAQ);
+            questions = geminiService.generateQuiz(topic.getTitle(), difficulty, countMCQ, countSAQ);
+            System.out.println("Gemini returned " + questions.length() + " questions");
+        } catch (Exception e) {
+            // Fallback: Generate sample questions if Gemini API fails
+            System.err.println("Gemini API failed, using fallback sample questions: " + e.getMessage());
+            questions = generateFallbackQuestions(topic.getTitle(), difficulty, countMCQ, countSAQ);
+            System.out.println("Generated " + questions.length() + " fallback questions");
+        }
 
         for (int i = 0; i < questions.length(); i++) {
 
@@ -103,6 +112,39 @@ public class QuizService {
         }
 
         return quiz;
+    }
+
+    private org.json.JSONArray generateFallbackQuestions(String topicName, String difficulty, int countMCQ,
+            int countSAQ) {
+        org.json.JSONArray questions = new org.json.JSONArray();
+
+        // Generate MCQ questions
+        for (int i = 0; i < countMCQ; i++) {
+            org.json.JSONObject q = new org.json.JSONObject();
+            q.put("type", "MCQ");
+            q.put("question", "Sample question " + (i + 1) + " about " + topicName + " (" + difficulty + " level)");
+
+            org.json.JSONArray options = new org.json.JSONArray();
+            options.put("Option A: Sample answer");
+            options.put("Option B: Sample answer");
+            options.put("Option C: Sample answer");
+            options.put("Option D: Sample answer");
+            q.put("options", options);
+            q.put("answer", "A");
+
+            questions.put(q);
+        }
+
+        // Generate SAQ questions
+        for (int i = 0; i < countSAQ; i++) {
+            org.json.JSONObject q = new org.json.JSONObject();
+            q.put("type", "SAQ");
+            q.put("question",
+                    "Short answer question " + (i + 1) + " about " + topicName + " (" + difficulty + " level)");
+            questions.put(q);
+        }
+
+        return questions;
     }
 
     public List<Quiz> getAllQuizzes() {

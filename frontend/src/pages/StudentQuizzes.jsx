@@ -121,7 +121,6 @@ function StudentQuizzes() {
                 passed: resp.passed ?? (Number(score) >= 50),
                 questionResults: resp.questionResults || resp.question_results || [],
                 nextDifficulty: resp.nextDifficulty || resp.next_difficulty || 'MEDIUM',
-                nextDifficulty: resp.nextDifficulty || resp.next_difficulty || 'MEDIUM',
                 topicId: submission.topicId || (currentQuiz && currentQuiz.topicId),
                 quizId: submission.quizId || submission.id || submission.quiz?.id
             };

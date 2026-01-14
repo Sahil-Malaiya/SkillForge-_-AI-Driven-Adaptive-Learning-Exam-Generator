@@ -19,20 +19,41 @@ public class QuizController {
     private QuizService quizService;
 
     @PostMapping
-    public ResponseEntity<Quiz> createQuiz(@RequestBody Map<String, Object> payload) {
-        System.out.println("Received createQuiz request: " + payload);
-        Long topicId = Long.valueOf(payload.get("topicId").toString());
-        String difficulty = (String) payload.get("difficulty");
-        int countMCQ = payload.containsKey("count") ? Integer.parseInt(payload.get("count").toString()) : 2;
-        int countSAQ = payload.containsKey("countSAQ") ? Integer.parseInt(payload.get("countSAQ").toString()) : 0;
+    public ResponseEntity<?> createQuiz(@RequestBody Map<String, Object> payload) {
+        try {
+            System.out.println("Received createQuiz request: " + payload);
+            Long topicId = Long.valueOf(payload.get("topicId").toString());
+            String difficulty = (String) payload.get("difficulty");
+            int countMCQ = payload.containsKey("count") ? Integer.parseInt(payload.get("count").toString()) : 2;
+            int countSAQ = payload.containsKey("countSAQ") ? Integer.parseInt(payload.get("countSAQ").toString()) : 0;
 
-        // If they still pass 'count' but not countMCQ, use 'count' as countMCQ for
-        // backward compatibility
-        if (payload.containsKey("countMCQ")) {
-            countMCQ = Integer.parseInt(payload.get("countMCQ").toString());
+            // If they still pass 'count' but not countMCQ, use 'count' as countMCQ for
+            // backward compatibility
+            if (payload.containsKey("countMCQ")) {
+                countMCQ = Integer.parseInt(payload.get("countMCQ").toString());
+            }
+
+            Quiz quiz = quizService.createQuiz(topicId, difficulty, countMCQ, countSAQ);
+            return ResponseEntity.ok(quiz);
+        } catch (RuntimeException e) {
+            System.err.println("Error creating quiz: " + e.getMessage());
+            e.printStackTrace();
+
+            // Return a user-friendly error message
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("Gemini")) {
+                return ResponseEntity.status(503)
+                        .body(Map.of("error",
+                                "Quiz generation service is currently unavailable. Please check your API configuration and try again."));
+            } else if (errorMessage != null && errorMessage.contains("Topic not found")) {
+                return ResponseEntity.status(404)
+                        .body(Map.of("error", "Topic not found. Please select a valid topic."));
+            } else {
+                return ResponseEntity.status(500)
+                        .body(Map.of("error",
+                                "Failed to create quiz: " + (errorMessage != null ? errorMessage : "Unknown error")));
+            }
         }
-
-        return ResponseEntity.ok(quizService.createQuiz(topicId, difficulty, countMCQ, countSAQ));
     }
 
     @GetMapping
