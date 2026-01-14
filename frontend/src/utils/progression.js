@@ -23,11 +23,18 @@ export const progression = {
             // 2. Check for next topic in the same subject
             if (currentIndex !== -1 && currentIndex < sortedTopics.length - 1) {
                 const nextTopic = sortedTopics[currentIndex + 1];
+
+                // Need courseId for the new URL structure: /my-courses/:courseId/subjects/:subjectId/topics
+                // We have subjectId (currentSubjectId), but need courseId from the subject entity.
+                // Optimally we'd have it in the topic or subject already, but let's fetch the subject to be sure.
+                const subject = await subjectService.getSubjectById(currentSubjectId);
+
                 return {
                     type: 'TOPIC',
                     id: nextTopic.id,
                     title: nextTopic.title,
-                    subjectId: currentSubjectId
+                    subjectId: currentSubjectId,
+                    courseId: subject.courseId
                 };
             }
 
@@ -81,5 +88,27 @@ export const progression = {
             console.error('Error in progression logic:', error);
             return { type: 'ERROR', message: 'Failed to determine next steps.' };
         }
+    },
+
+    /**
+     * Gets context (courseId, subjectId) for a specific topic ID.
+     */
+    getTopicContext: async (topicId) => {
+        try {
+            const allTopics = await topicService.getAllTopics();
+            const topic = allTopics.find(t => t.id === topicId);
+            if (!topic) return null;
+
+            const subject = await subjectService.getSubjectById(topic.subjectId);
+            return {
+                topicId: topic.id,
+                subjectId: subject.id,
+                courseId: subject.courseId
+            };
+        } catch (error) {
+            console.error('Error getting topic context:', error);
+            return null;
+        }
     }
 };
+

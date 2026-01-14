@@ -27,50 +27,50 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
 
-        public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, AuthenticationProvider authenticationProvider) {
-            this.jwtAuthFilter = jwtAuthFilter;
-            this.authenticationProvider = authenticationProvider;
-        }
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, AuthenticationProvider authenticationProvider) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.authenticationProvider = authenticationProvider;
+    }
 
-        // Public chain for static uploads
-        @Bean
-        @Order(1)
-        public SecurityFilterChain uploadsChain(HttpSecurity http) throws Exception {
-            http
+    // Public chain for static uploads
+    @Bean
+    @Order(1)
+    public SecurityFilterChain uploadsChain(HttpSecurity http) throws Exception {
+        http
                 .securityMatcher(new AntPathRequestMatcher("/uploads/**"))
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-            return http.build();
-        }
+        return http.build();
+    }
 
-            @Bean
-            @Order(2)
-           public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
-        .csrf(AbstractHttpConfigurer::disable)
-        .cors(Customizer.withDefaults())
-        .authorizeHttpRequests(req -> req
-            .requestMatchers("/auth/**").permitAll()
-            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // FIXED
+    @Bean
+    @Order(2)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(req -> req
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // FIXED
             // .requestMatchers("/api/instructor/**").hasAuthority("INSTRUCTOR")  // role based access
-             // Protected routes
+                        // Protected routes
                         .requestMatchers("/api/instructor/**").authenticated()
-            // Everything else allowed
-                        .anyRequest().permitAll()
-        )
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authenticationProvider(authenticationProvider)
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                        // Everything else allowed
+                        .anyRequest().permitAll())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-    return http.build();
-}
-        // Completely bypass Spring Security for static upload resources.
-        @Bean
-        public WebSecurityCustomizer webSecurityCustomizer() {
-            return (web) -> web.ignoring().requestMatchers("/uploads/**");
-        }
+        return http.build();
+    }
+
+    // Completely bypass Spring Security for static upload resources.
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers("/uploads/**");
+    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

@@ -8,17 +8,21 @@ function QuizTaker({ quiz, onSubmit, onCancel }) {
     const [startTime] = useState(Date.now());
 
     useEffect(() => {
-        if (timeRemaining <= 0) {
-            handleSubmit();
-            return;
-        }
-
         const timer = setInterval(() => {
-            setTimeRemaining(prev => prev - 1);
+            setTimeRemaining(prev => {
+                if (prev <= 1) {
+                    // Time's up - auto submit
+                    clearInterval(timer);
+                    handleSubmit();
+                    return 0;
+                }
+                return prev - 1;
+            });
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [timeRemaining]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleAnswerSelect = (questionId, answer) => {
         setAnswers({

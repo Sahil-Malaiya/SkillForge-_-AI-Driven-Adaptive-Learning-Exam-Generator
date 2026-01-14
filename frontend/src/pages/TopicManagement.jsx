@@ -477,10 +477,11 @@ function TopicManagement() {
                                     {topic.videoUrl && (
                                         <div className="content-item">
                                             <video
+                                                key={topic.videoUrl}
                                                 controls
-                                                style={{ width: '100%', maxHeight: '200px', borderRadius: '8px' }}
+                                                style={{ width: '300px', maxHeight: '200px', borderRadius: '8px' }}
+                                                src={buildAssetUrl(topic.videoUrl)}
                                             >
-                                                <source src={buildAssetUrl(topic.videoUrl)} type="video/mp4" />
                                                 Your browser does not support the video tag.
                                             </video>
                                         </div>

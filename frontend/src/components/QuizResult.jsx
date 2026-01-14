@@ -25,27 +25,25 @@ function QuizResult({ result = {}, onClose, onRetry }) {
     }
 
     const getScoreColor = (pct) => {
-        if (pct >= 90) return '#28a745'; // green
-        if (pct >= 75) return '#0d6efd'; // blue
-        if (pct >= 50) return '#fd7e14'; // orange
-        return '#dc3545'; // red
+        if (pct >= 80) return '#28a745'; // green - Excellent
+        if (pct >= 60) return '#0d6efd'; // blue - Above Average
+        if (pct >= 40) return '#fd7e14'; // orange - Below Average
+        return '#dc3545'; // red - Poor
     };
 
     const getStatusLabel = (pct) => {
-        if (pct < 50) return 'Low / Below Average';
-        if (pct <= 75) return 'Average';
-        if (pct < 90) return 'Good';
-        if (pct <= 95) return 'Very Good';
-        return 'Top 1% / Excellent';
+        if (pct < 40) return 'Poor';
+        if (pct < 60) return 'Below Average';
+        if (pct < 80) return 'Above Average';
+        return 'Excellent';
     };
 
     const statusLabel = getStatusLabel(percentage);
 
     const getScoreMessage = (pct) => {
-        if (pct > 95) return 'Outstanding — top performer!';
-        if (pct >= 90) return 'Very strong performance.';
-        if (pct >= 76) return 'Good work — keep it up.';
-        if (pct >= 50) return 'Satisfactory — room to improve.';
+        if (pct >= 80) return 'Outstanding performance!';
+        if (pct >= 60) return 'Good work — you passed!';
+        if (pct >= 40) return 'Satisfactory — room to improve.';
         return 'Needs improvement — practice more.';
     };
 
@@ -60,14 +58,19 @@ function QuizResult({ result = {}, onClose, onRetry }) {
 
     const navigate = useNavigate();
     const [nextTarget, setNextTarget] = useState(null);
+    const [currentTopicContext, setCurrentTopicContext] = useState(null);
     const [loadingNext, setLoadingNext] = useState(false);
 
     useEffect(() => {
         const fetchNextTarget = async () => {
-            if (result.topicId || result.quiz?.topicId || result.quiz?.topic?.id) {
+            const tId = result.topicId || result.quiz?.topicId || result.quiz?.topic?.id;
+            if (tId) {
                 setLoadingNext(true);
-                const target = await progression.findNextTarget(result.topicId || result.quiz?.topicId || result.quiz?.topic?.id);
+                const target = await progression.findNextTarget(tId);
+                const context = await progression.getTopicContext(tId);
+
                 setNextTarget(target);
+                setCurrentTopicContext(context);
                 setLoadingNext(false);
             }
         };
@@ -78,13 +81,14 @@ function QuizResult({ result = {}, onClose, onRetry }) {
         if (!nextTarget) return;
 
         if (nextTarget.type === 'TOPIC') {
-            navigate(`/student-dashboard/my-courses?topicId=${nextTarget.id}`);
+            // Navigate to the topic list for the subject
+            navigate(`/student-dashboard/my-courses/${nextTarget.courseId}/subjects/${nextTarget.subjectId}/topics`);
         } else if (nextTarget.type === 'SUBJECT') {
-            // If we have a subject recommendation, we could just go to courses,
-            // or we could add a subjectId link if we wanted similar logic.
-            navigate('/student-dashboard/my-courses');
+            // Navigate to the subject list for the course
+            navigate(`/student-dashboard/my-courses/${nextTarget.courseId}/subjects`);
         } else if (nextTarget.type === 'COURSE') {
-            navigate('/student-dashboard/my-courses');
+            // Navigate to the subject list for the new course
+            navigate(`/student-dashboard/my-courses/${nextTarget.id}/subjects`);
         }
     };
 
@@ -129,51 +133,95 @@ function QuizResult({ result = {}, onClose, onRetry }) {
                 <h3>Recommended Next Step</h3>
                 {loadingNext ? (
                     <p>Calculating your next step...</p>
-                ) : percentage >= 90 ? (
+                ) : percentage >= 80 ? (
                     <div className="recommendation-content">
                         {nextTarget && nextTarget.type === 'COMPLETED' ? (
                             <div className="completion-badge">
                                 <span className="icon">🏆</span>
                                 <p>{nextTarget.message}</p>
                             </div>
-                        ) : nextTarget ? (
+                        ) : (
                             <>
                                 <div className="target-info">
-                                    <span className="target-type">{nextTarget.type}:</span>
-                                    <span className="target-title">{nextTarget.title}</span>
+                                    <span className="target-type">STRATEGY:</span>
+                                    <span className="target-title">Excellent! Move to Next Topic</span>
                                 </div>
-                                <button className="btn btn-primary mt-2" onClick={handleOpenTarget}>
-                                    Go to {nextTarget.type.toLowerCase()}
-                                </button>
+                                <p className="mt-2 muted">Outstanding work! You've mastered this topic. Continue your learning journey with the next one.</p>
+
+                                {/* Recommendation (Next Topic) */}
+                                {nextTarget && nextTarget.type !== 'COMPLETED' && (
+                                    <div className="mt-2" style={{ marginBottom: '10px' }}>
+                                        <p style={{ fontSize: '0.9em', fontWeight: 'bold' }}>Recommended:</p>
+                                        <div className="target-info" style={{ marginTop: '5px' }}>
+                                            <span className="target-type">{nextTarget.type}:</span>
+                                            <span className="target-title">{nextTarget.title}</span>
+                                        </div>
+                                        <button className="btn btn-success mt-1" onClick={handleOpenTarget}>
+                                            Go to {nextTarget.type.toLowerCase()}
+                                        </button>
+                                    </div>
+                                )}
                             </>
-                        ) : (
-                            <p>Analyzing your performance...</p>
                         )}
                     </div>
                 ) : percentage >= 60 ? (
                     <div className="recommendation-content">
                         <div className="target-info">
                             <span className="target-type">STRATEGY:</span>
-                            <span className="target-title">Retake Quiz & Review Topic</span>
+                            <span className="target-title">Good Job! Move Forward or Improve</span>
                         </div>
-                        <p className="mt-2 muted">You're doing well! A quick review and another attempt could help you master this topic.</p>
+                        <p className="mt-2 muted">You passed! You can move to the next topic or retake this one to get a perfect score.</p>
+
+                        {/* Recommendation (Next Topic) */}
+                        {nextTarget && nextTarget.type !== 'COMPLETED' && (
+                            <div className="mt-2" style={{ marginBottom: '10px' }}>
+                                <p style={{ fontSize: '0.9em', fontWeight: 'bold' }}>Recommended:</p>
+                                <div className="target-info" style={{ marginTop: '5px' }}>
+                                    <span className="target-type">{nextTarget.type}:</span>
+                                    <span className="target-title">{nextTarget.title}</span>
+                                </div>
+                                <button className="btn btn-success mt-1" onClick={handleOpenTarget}>
+                                    Go to {nextTarget.type.toLowerCase()}
+                                </button>
+                            </div>
+                        )}
+
                         <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                             {onRetry && <button className="btn btn-primary" onClick={onRetry}>Retake Quiz</button>}
-                            <button className="btn btn-outline" onClick={() => navigate(`/student-dashboard/my-courses?topicId=${result.topicId || result.quiz?.topicId}`)}>Review Topic</button>
+
+                        </div>
+                    </div>
+                ) : percentage >= 40 ? (
+                    <div className="recommendation-content">
+                        <div className="target-info">
+                            <span className="target-type">STRATEGY:</span>
+                            <span className="target-title">Almost There!</span>
+                        </div>
+                        <p className="mt-2 muted">You need just a bit more to pass (60%). Review the topic and try again!</p>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                            {onRetry && <button className="btn btn-primary" onClick={onRetry}>Retake Quiz</button>}
+                            {/* Review Topic Link */}
+                            {currentTopicContext && (
+                                <button className="btn btn-outline" onClick={() => navigate(`/student-dashboard/my-courses/${currentTopicContext.courseId}/subjects/${currentTopicContext.subjectId}/topics`)}>
+                                    Review Topic
+                                </button>
+                            )}
                         </div>
                     </div>
                 ) : (
                     <div className="recommendation-content">
                         <div className="target-info">
                             <span className="target-type">STRATEGY:</span>
-                            <span className="target-title">Review Topic Materials</span>
+                            <span className="target-title">Needs Improvement</span>
                         </div>
-                        <p className="mt-2 muted">It looks like you need a bit more practice. We recommend going through the topic materials again before retaking the quiz.</p>
+                        <p className="mt-2 muted">Don't worry, practice makes perfect. Review the materials and retake the quiz.</p>
                         <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                             {onRetry && <button className="btn btn-primary" onClick={onRetry}>Retake Quiz</button>}
-                            <button className="btn btn-outline" onClick={() => navigate(`/student-dashboard/my-courses?topicId=${result.topicId || result.quiz?.topicId}`)}>
-                                Review Topic
-                            </button>
+                            {currentTopicContext && (
+                                <button className="btn btn-outline" onClick={() => navigate(`/student-dashboard/my-courses/${currentTopicContext.courseId}/subjects/${currentTopicContext.subjectId}/topics`)}>
+                                    Review Topic
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}

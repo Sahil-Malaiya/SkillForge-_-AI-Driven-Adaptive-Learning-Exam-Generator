@@ -90,13 +90,16 @@ public class StudentQuizController {
         List<Map<String, Object>> resp = assignments.stream().map(a -> {
             Map<String, Object> m = new HashMap<>();
             Long quizId = null;
+            Long topicId = null;
             String title = null;
             String courseTitle = null;
             int questionCount = 0;
             if (a.getQuiz() != null) {
                 quizId = a.getQuiz().getId();
-                if (a.getQuiz().getTopic() != null)
+                if (a.getQuiz().getTopic() != null) {
                     title = a.getQuiz().getTopic().getTitle();
+                    topicId = a.getQuiz().getTopic().getId();
+                }
                 questionCount = quizQuestionRepository.findByQuizId(quizId).size();
             }
             if (a.getCourse() != null) {
@@ -108,6 +111,7 @@ public class StudentQuizController {
             Integer duration = questionCount;
 
             m.put("quizId", quizId);
+            m.put("topicId", topicId);
             m.put("title", title);
             m.put("course", courseTitle);
             m.put("duration", duration);

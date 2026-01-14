@@ -19,8 +19,9 @@ function TopicCard({ topic }) {
                             <video
                                 controls
                                 className="topic-video-element"
+                                src={buildAssetUrl(topic.videoUrl)}
+                                preload="metadata"
                             >
-                                <source src={buildAssetUrl(topic.videoUrl)} type="video/mp4" />
                                 Your browser does not support the video tag.
                             </video>
                         </div>
