@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem, Snackbar, Alert } from '@mui/material';
 import { warnIfStudentCallingInstructorApi } from '../services/devApiGuard';
+import './TopicManagement.css';
 
 function TopicManagement() {
     const { courseId, subjectId } = useParams();
@@ -19,6 +20,8 @@ function TopicManagement() {
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [contentFilter, setContentFilter] = useState('ALL');
 
     // Quiz Generation State
     const [quizDialogOpen, setQuizDialogOpen] = useState(false);
@@ -76,7 +79,6 @@ function TopicManagement() {
 
     const buildAssetUrl = (url) => {
         if (!url) return '';
-        // If already absolute (http/https), use as-is; otherwise prefix backend origin.
         if (/^https?:\/\//i.test(url)) return url;
         const normalized = url.startsWith('/') ? url : `/${url}`;
         return `http://localhost:8080${normalized}`;
@@ -92,7 +94,6 @@ function TopicManagement() {
             if (response.ok) {
                 const data = await response.json();
                 setTopics(data);
-                console.log('Topics fetched:', data);
             }
         } catch (err) {
             setError('Failed to fetch topics');
@@ -148,7 +149,6 @@ function TopicManagement() {
             if (response.ok) {
                 setFormData({ title: '', externalLink: '', videoFile: null, pdfFile: null });
                 setEditingId(null);
-                // Reset file inputs
                 const videoInput = document.getElementById('videoFile');
                 const pdfInput = document.getElementById('pdfFile');
                 if (videoInput) videoInput.value = '';
@@ -156,15 +156,9 @@ function TopicManagement() {
                 fetchTopics();
             } else {
                 const errorText = await response.text();
-                console.error('Topic save error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    body: errorText
-                });
                 setError(`Failed to save topic (${response.status}): ${errorText || response.statusText}`);
             }
         } catch (err) {
-            console.error('Topic save exception:', err);
             setError(`Failed to save topic: ${err.message}`);
         } finally {
             setLoading(false);
@@ -213,11 +207,10 @@ function TopicManagement() {
 
     const handleGenerateQuiz = async () => {
         setGeneratingQuiz(true);
-        setError(''); // Clear previous errors
+        setError('');
         try {
             const url = 'http://localhost:8080/api/instructor/quizzes';
             warnIfStudentCallingInstructorApi(url);
-            console.log('Sending quiz generation request for topic:', selectedTopicId);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -233,7 +226,6 @@ function TopicManagement() {
             });
 
             if (response.ok) {
-                console.log('Quiz generation successful, setting success message');
                 setQuizSuccessMsg('Quiz generated successfully!');
                 setQuizDialogOpen(false);
             } else {
@@ -246,6 +238,19 @@ function TopicManagement() {
             setGeneratingQuiz(false);
         }
     };
+
+    // Filter topics based on search and content type
+    const filteredTopics = topics
+        .filter(topic => {
+            const matchesSearch = topic.title.toLowerCase().includes(searchTerm.toLowerCase());
+
+            if (contentFilter === 'ALL') return matchesSearch;
+            if (contentFilter === 'VIDEO') return matchesSearch && topic.videoUrl;
+            if (contentFilter === 'PDF') return matchesSearch && topic.pdfUrl;
+            if (contentFilter === 'LINK') return matchesSearch && topic.externalLink;
+
+            return matchesSearch;
+        });
 
     return (
         <div className="content-body">
@@ -271,19 +276,76 @@ function TopicManagement() {
                 ← Back to Subjects
             </button>
 
-            <div className="breadcrumb">
-                <Link to="/courses">Courses</Link>
-                <span className="breadcrumb-separator">›</span>
-                <Link to={`/courses/${courseId}/subjects`}>{course?.title || 'Course'}</Link>
-                <span className="breadcrumb-separator">›</span>
-                <span>{subject?.name || 'Subject'}</span>
-                <span className="breadcrumb-separator">›</span>
-                <span>Topics</span>
-            </div>
+            {/* Header Section */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '30px',
+                padding: '20px',
+                background: '#fff',
+                borderRadius: '12px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            }}>
+                <div>
+                    <h2 style={{ margin: '0 0 5px 0', fontSize: '28px', fontWeight: 600, color: '#2c3e50' }}>Topic Management</h2>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#6c757d' }}>
+                        {course?.title} › {subject?.name}
+                    </p>
+                </div>
 
-            <h2 style={{ marginBottom: '20px', color: '#2c3e50' }}>
-                Topics of {subject?.name}
-            </h2>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    {/* Search Bar */}
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type="text"
+                            placeholder="Search Topics..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                padding: '10px 40px 10px 15px',
+                                border: '1px solid #e0e0e0',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                width: '250px',
+                                outline: 'none'
+                            }}
+                        />
+                        <svg
+                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '20px', height: '20px', color: '#9e9e9e' }}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+
+                    {/* Filter Dropdown */}
+                    <select
+                        value={contentFilter}
+                        onChange={(e) => setContentFilter(e.target.value)}
+                        style={{
+                            padding: '10px 35px 10px 15px',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            background: '#fff',
+                            appearance: 'none',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239e9e9e' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 12px center'
+                        }}
+                    >
+                        <option value="ALL">All Content</option>
+                        <option value="VIDEO">With Video</option>
+                        <option value="PDF">With PDF</option>
+                        <option value="LINK">With Link</option>
+                    </select>
+                </div>
+            </div>
 
             {error && (
                 <div className="alert alert-error">{error}</div>
@@ -301,6 +363,7 @@ function TopicManagement() {
                 </div>
             )}
 
+            {/* Create/Edit Form */}
             <div className="form-section">
                 <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>
                     {editingId ? 'Edit Topic' : 'Create Topic'}
@@ -381,95 +444,115 @@ function TopicManagement() {
                 </form>
             </div>
 
-            <div className="table-container">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>S.No</th>
-                            <th>Title</th>
-                            <th>Video</th>
-                            <th>PDF</th>
-                            <th>External Link</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {topics.length === 0 ? (
-                            <tr>
-                                <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
-                                    No topics found
-                                </td>
-                            </tr>
-                        ) : (
-                            topics.map((topic, index) => (
-                                <tr key={topic.id}>
-                                    <td>{index + 1}</td>
-                                    <td>{topic.title}</td>
-                                    <td>
-                                        {topic.videoUrl ? (
+            {/* Topics Grid */}
+            <div style={{ marginTop: '30px' }}>
+                {filteredTopics.length === 0 ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '60px 20px',
+                        background: '#f8f9fa',
+                        borderRadius: '12px',
+                        color: '#7f8c8d'
+                    }}>
+                        <p style={{ fontSize: '16px', margin: 0 }}>
+                            {topics.length === 0
+                                ? 'No topics found. Create your first topic above!'
+                                : 'No topics match your search or filter. Try adjusting your criteria.'}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="topics-grid">
+                        {filteredTopics.map((topic) => (
+                            <div key={topic.id} className="topic-card">
+                                <div className="topic-card-header">
+                                    <h4 className="topic-title">{topic.title}</h4>
+                                    <div className="topic-badges">
+                                        {topic.videoUrl && <span className="badge badge-video">Video</span>}
+                                        {topic.pdfUrl && <span className="badge badge-pdf">PDF</span>}
+                                        {topic.externalLink && <span className="badge badge-link">Link</span>}
+                                    </div>
+                                </div>
+
+                                <div className="topic-card-content">
+                                    {topic.videoUrl && (
+                                        <div className="content-item">
                                             <video
                                                 controls
-                                                style={{ width: '300px', maxHeight: '200px' }}
+                                                style={{ width: '100%', maxHeight: '200px', borderRadius: '8px' }}
                                             >
                                                 <source src={buildAssetUrl(topic.videoUrl)} type="video/mp4" />
                                                 Your browser does not support the video tag.
                                             </video>
-                                        ) : '-'}
-                                    </td>
-                                    <td>
-                                        {topic.pdfUrl ? (
+                                        </div>
+                                    )}
+
+                                    {topic.pdfUrl && (
+                                        <div className="content-item">
                                             <a
                                                 href={buildAssetUrl(topic.pdfUrl)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="btn btn-small btn-success"
+                                                className="content-link"
                                             >
-                                                View PDF
+                                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                </svg>
+                                                View PDF Document
                                             </a>
-                                        ) : '-'}
-                                    </td>
-                                    <td>
-                                        {topic.externalLink ? (
+                                        </div>
+                                    )}
+
+                                    {topic.externalLink && (
+                                        <div className="content-item">
                                             <a
                                                 href={topic.externalLink}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="btn btn-small btn-success"
+                                                className="content-link"
                                             >
-                                                Open Link
+                                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                                Open External Link
                                             </a>
-                                        ) : '-'}
-                                    </td>
-                                    <td>
-                                        <div className="table-actions" style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                                            <button
-                                                className="btn btn-small btn-primary"
-                                                onClick={() => handleEdit(topic)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="btn btn-small btn-secondary"
-                                                onClick={() => isInstructor ? handleOpenQuizDialog(topic.id) : null}
-                                                disabled={!isInstructor}
-                                                title={!isInstructor ? 'Instructor only' : ''}
-                                                style={{ backgroundColor: '#9c27b0', color: 'white' }}
-                                            >
-                                                {isInstructor ? 'Generate Quiz' : 'Instructor Only'}
-                                            </button>
-                                            <button
-                                                className="btn btn-small btn-danger"
-                                                onClick={() => handleDelete(topic.id)}
-                                            >
-                                                Delete
-                                            </button>
                                         </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                                    )}
+                                </div>
+
+                                <div className="topic-card-actions">
+                                    <button
+                                        className="action-btn edit-btn"
+                                        onClick={() => handleEdit(topic)}
+                                    >
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        Edit
+                                    </button>
+                                    <button
+                                        className="action-btn quiz-btn"
+                                        onClick={() => isInstructor ? handleOpenQuizDialog(topic.id) : null}
+                                        disabled={!isInstructor}
+                                    >
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                        </svg>
+                                        Quiz
+                                    </button>
+                                    <button
+                                        className="action-btn delete-btn"
+                                        onClick={() => handleDelete(topic.id)}
+                                    >
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Quiz Difficulty Dialog */}
