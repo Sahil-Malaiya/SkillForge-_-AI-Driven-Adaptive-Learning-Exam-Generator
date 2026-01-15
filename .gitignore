@@ -60,4 +60,4 @@ uploads/
 target/
 
 # Spring Boot local config
-backend/main/resources/application.properties
+#backend/main/resources/application.properties
