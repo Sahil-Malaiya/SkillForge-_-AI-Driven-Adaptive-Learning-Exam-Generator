@@ -69,16 +69,36 @@ public class StudentQuizController {
     public ResponseEntity<Map<String, Object>> getProgress(@PathVariable Long studentId) {
         List<StudentQuizAttempt> attempts = attemptRepository.findByStudentId(studentId);
         int totalAttempts = attempts.size();
-        int totalScore = attempts.stream().mapToInt(StudentQuizAttempt::getScore).sum();
-        int totalQuestions = attempts.stream().mapToInt(StudentQuizAttempt::getTotalQuestions).sum();
 
-        double avgScore = totalAttempts == 0 ? 0 : ((double) totalScore) / totalAttempts;
-        double accuracy = totalQuestions == 0 ? 0 : ((double) totalScore * 100) / totalQuestions;
+        // Calculate total score including both auto-graded and manual scores
+        int totalScore = attempts.stream()
+                .mapToInt(a -> a.getScore() + a.getManualScore())
+                .sum();
+
+        int totalQuestions = attempts.stream()
+                .mapToInt(StudentQuizAttempt::getTotalQuestions)
+                .sum();
+
+        // Calculate average score per quiz (as percentage)
+        double avgScore = totalAttempts == 0 ? 0
+                : attempts.stream()
+                        .mapToDouble(a -> {
+                            int total = a.getTotalQuestions();
+                            if (total == 0)
+                                return 0;
+                            int score = a.getScore() + a.getManualScore();
+                            return Math.min(100.0, ((double) score / total) * 100);
+                        })
+                        .average()
+                        .orElse(0);
+
+        // Calculate overall accuracy (capped at 100%)
+        double accuracy = totalQuestions == 0 ? 0 : Math.min(100.0, ((double) totalScore / totalQuestions) * 100);
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("totalAttempts", totalAttempts);
-        resp.put("avgScore", avgScore);
-        resp.put("accuracy", accuracy);
+        resp.put("avgScore", Math.round(avgScore));
+        resp.put("accuracy", Math.round(accuracy));
         resp.put("attempts", attempts);
         return ResponseEntity.ok(resp);
     }

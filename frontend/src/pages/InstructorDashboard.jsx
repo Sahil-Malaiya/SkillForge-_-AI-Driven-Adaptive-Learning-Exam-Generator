@@ -80,10 +80,13 @@ function InstructorDashboard() {
 
             {/* Main Content */}
             <div className="main-content">
-                <div className="content-header">
-                    <h1>Instructor Dashboard</h1>
-                    <p>Welcome, {user?.fullName || 'Instructor'}</p>
-                </div>
+                {/* Only show header on dashboard/home page */}
+                {showDashboard && (
+                    <div className="content-header">
+                        <h1>Instructor Dashboard</h1>
+                        <p>Welcome, {user?.fullName || 'Instructor'}</p>
+                    </div>
+                )}
 
                 {/* This will render the child routes (CourseManagement, StudentManagement, etc.) */}
                 {showDashboard ? (

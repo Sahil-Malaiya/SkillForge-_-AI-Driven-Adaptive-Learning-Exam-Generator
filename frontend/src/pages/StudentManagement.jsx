@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
+import './StudentManagement.css';
 
 function StudentManagement() {
     const navigate = useNavigate();
     const [students, setStudents] = useState([]);
-    const [formData, setFormData] = useState({
-        name: '',
-        email: ''
-    });
-    const [editingId, setEditingId] = useState(null);
+    const [filteredStudents, setFilteredStudents] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -17,7 +15,12 @@ function StudentManagement() {
         fetchStudents();
     }, []);
 
+    useEffect(() => {
+        filterStudents();
+    }, [students, searchQuery]);
+
     const fetchStudents = async () => {
+        setLoading(true);
         try {
             const response = await fetch('http://localhost:8080/api/students', {
                 headers: {
@@ -27,196 +30,94 @@ function StudentManagement() {
             if (response.ok) {
                 const data = await response.json();
                 setStudents(data);
+            } else {
+                setError('Failed to fetch students');
             }
         } catch (err) {
             setError('Failed to fetch students');
-        }
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
-        try {
-            const url = editingId
-                ? `http://localhost:8080/api/students/${editingId}`
-                : 'http://localhost:8080/api/students';
-
-            const method = editingId ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authService.getToken()}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (response.ok) {
-                setFormData({ name: '', email: '' });
-                setEditingId(null);
-                fetchStudents();
-            } else {
-                setError('Failed to save student');
-            }
-        } catch (err) {
-            setError('Failed to save student');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEdit = (student) => {
-        setFormData({
-            name: student.name,
-            email: student.email
-        });
-        setEditingId(student.id);
+    const filterStudents = () => {
+        if (searchQuery.trim() === '') {
+            setFilteredStudents(students);
+        } else {
+            const filtered = students.filter(student =>
+                student.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            setFilteredStudents(filtered);
+        }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this student?')) {
-            return;
-        }
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+    };
 
-        try {
-            const response = await fetch(`http://localhost:8080/api/students/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${authService.getToken()}`
-                }
-            });
-
-            if (response.ok) {
-                fetchStudents();
-            } else {
-                setError('Failed to delete student');
-            }
-        } catch (err) {
-            setError('Failed to delete student');
-        }
+    const handleViewPerformance = (studentId) => {
+        navigate(`/students/${studentId}/performance`);
     };
 
     return (
-        <div className="content-body">
-            <h2 style={{ marginBottom: '20px', color: '#2c3e50' }}>Student Management</h2>
+        <div className="student-management-container">
+            <h2 className="page-title">Student Management</h2>
 
             {error && (
                 <div className="alert alert-error">{error}</div>
             )}
 
-            <div className="form-section">
-                <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>
-                    {editingId ? 'Edit Student' : 'Add Student'}
-                </h3>
-                <form onSubmit={handleSubmit}>
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label className="form-label" htmlFor="name">Student Name:</label>
-                            <input
-                                type="text"
-                                id="name"
-                                name="name"
-                                className="form-input"
-                                placeholder="Enter student name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label" htmlFor="email">Student Email:</label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                className="form-input"
-                                placeholder="Enter student email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button type="submit" className="btn btn-primary" disabled={loading}>
-                            {loading ? 'Saving...' : editingId ? 'Update Student' : 'Save Student'}
+            {/* Search Filter */}
+            <div className="filter-section">
+                <h3 className="filter-title">Search Students</h3>
+                <div className="search-container">
+                    <input
+                        type="text"
+                        className="search-input"
+                        placeholder="Type to search by student name..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                    />
+                    {searchQuery && (
+                        <button
+                            className="clear-btn"
+                            onClick={() => setSearchQuery('')}
+                            title="Clear search"
+                        >
+                            ✕
                         </button>
-                        {editingId && (
-                            <button
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    setEditingId(null);
-                                    setFormData({ name: '', email: '' });
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        )}
-                    </div>
-                </form>
+                    )}
+                </div>
             </div>
 
-            <div className="table-container">
-                <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>All Students</h3>
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {students.length === 0 ? (
-                            <tr>
-                                <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
-                                    No students found
-                                </td>
-                            </tr>
-                        ) : (
-                            students.map(student => (
-                                <tr key={student.id}>
-                                    <td>{student.id}</td>
-                                    <td>{student.name}</td>
-                                    <td>{student.email}</td>
-                                    <td>
-                                        <div className="table-actions">
-                                            <button
-                                                className="btn btn-small btn-primary"
-                                                onClick={() => handleEdit(student)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="btn btn-small btn-secondary"
-                                                onClick={() => navigate(`/students/${student.id}/performance`)}
-                                                style={{ marginLeft: 8 }}
-                                            >
-                                                View Performance
-                                            </button>
-                                            <button
-                                                className="btn btn-small btn-danger"
-                                                onClick={() => handleDelete(student.id)}
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+            {/* Student Grid */}
+            <div className="students-section">
+                {loading ? (
+                    <div className="loading-message">Loading students...</div>
+                ) : filteredStudents.length === 0 ? (
+                    <div className="no-students-message">
+                        {searchQuery.trim() === ''
+                            ? 'No students found'
+                            : `No students found matching "${searchQuery}"`}
+                    </div>
+                ) : (
+                    <div className="students-grid">
+                        {filteredStudents.map(student => (
+                            <div key={student.id} className="student-card">
+                                <div className="student-avatar">
+                                    {student.name.charAt(0).toUpperCase()}
+                                </div>
+                                <h4 className="student-name">{student.name}</h4>
+                                <button
+                                    className="performance-btn"
+                                    onClick={() => handleViewPerformance(student.id)}
+                                >
+                                    View Performance
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
