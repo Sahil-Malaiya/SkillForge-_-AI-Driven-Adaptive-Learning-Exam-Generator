@@ -58,3 +58,6 @@ uploads/
 
 ### Maven ###
 target/
+
+# Spring Boot local config
+backend/main/resources/application.properties
