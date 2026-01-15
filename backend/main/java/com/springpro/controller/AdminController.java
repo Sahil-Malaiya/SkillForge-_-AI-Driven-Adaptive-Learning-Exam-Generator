@@ -39,7 +39,8 @@ public class AdminController {
                 Role.ADMIN);
         userRepository.save(user);
         var jwtToken = jwtService.generateToken(user);
-        return ResponseEntity.ok(new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), user.getEmail(), user.getFullName()));
+        return ResponseEntity.ok(new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), null,
+                user.getEmail(), user.getFullName()));
     }
 
     @GetMapping("/users")

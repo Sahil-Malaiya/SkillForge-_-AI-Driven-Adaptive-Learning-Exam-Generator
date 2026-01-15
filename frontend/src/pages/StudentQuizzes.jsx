@@ -16,7 +16,7 @@ function StudentQuizzes() {
     const [gradingPending, setGradingPending] = useState(false);
 
     const user = authService.getCurrentUser()?.user || authService.getCurrentUser();
-    const studentId = user?.userId || user?.id || user?.userId;
+    const studentId = user?.studentId || user?.userId || user?.id;
 
     useEffect(() => {
         fetchAssignedQuizzes();

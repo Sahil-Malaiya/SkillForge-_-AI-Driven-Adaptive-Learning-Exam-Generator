@@ -50,12 +50,15 @@ public class AuthenticationService {
         repository.save(user);
 
         // If the user is a student, also create a record in the students table
+        Long studentId = null;
         if (request.getRole() == Role.STUDENT) {
             Student student = new Student(request.getFullName(), request.getEmail());
-            studentRepository.save(student);
+            student = studentRepository.save(student);
+            studentId = student.getId();
         }
         var jwtToken = jwtService.generateToken(user);
-        return new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), user.getEmail(), user.getFullName());
+        return new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), studentId, user.getEmail(),
+                user.getFullName());
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
@@ -65,12 +68,19 @@ public class AuthenticationService {
                         request.getPassword()));
         var user = repository.findByEmail(request.getEmail())
                 .orElseThrow();
-                Map<String, Object> claims = new HashMap<>();
-    claims.put("role", user.getRole().name()); // 👈 ADD ROLE HERE
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", user.getRole().name()); // 👈 ADD ROLE HERE
 
-    
         var jwtToken = jwtService.generateToken(claims, user);
 
-        return new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), user.getEmail(), user.getFullName());
+        Long studentId = null;
+        if (user.getRole() == Role.STUDENT) {
+            studentId = studentRepository.findByEmail(user.getEmail())
+                    .map(Student::getId)
+                    .orElse(null);
+        }
+
+        return new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), studentId, user.getEmail(),
+                user.getFullName());
     }
 }

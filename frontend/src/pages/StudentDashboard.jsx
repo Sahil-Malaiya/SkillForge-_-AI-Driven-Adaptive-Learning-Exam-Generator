@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { studentQuizService } from '../services/studentQuizService';
+import { progression } from '../utils/progression';
 import Sidebar from '../components/Sidebar';
 import './StudentDashboard.css';
 
@@ -41,12 +42,37 @@ function StudentDashboard() {
                 avgScore = Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
             }
 
+            // Finding the latest recommendation
+            let recommendation = null;
+            if (attempts.length > 0) {
+                const latest = attempts[attempts.length - 1];
+                const topicId = latest.quiz?.topic?.id || latest.quiz?.topicId;
+                if (topicId) {
+                    const autoScore = Number(latest.score || 0);
+                    const manualScore = Number(latest.manualScore || 0);
+                    const total = Number(latest.totalQuestions || 0);
+                    const pct = total > 0 ? ((autoScore + manualScore) / total) * 100 : 0;
+
+                    const nextTarget = await progression.findNextTarget(topicId);
+                    const context = await progression.getTopicContext(topicId);
+
+                    recommendation = {
+                        topicId: topicId,
+                        topicTitle: latest.quiz?.topic?.title || latest.quiz?.title || 'Current Topic',
+                        percentage: Math.round(pct),
+                        nextTarget: nextTarget,
+                        context: context
+                    };
+                }
+            }
+
             setDashboardData({
                 totalAttempts: Number(attemptCount),
                 avgScore: avgScore,
-                enrolledCourses: 0, // TODO: Get from API
+                enrolledCourses: 0,
                 attempts: attempts,
-                recentQuizzes: attempts.slice(-3).reverse()
+                recentQuizzes: attempts.slice(-3).reverse(),
+                recommendation: recommendation
             });
         } catch (err) {
             console.error('Error fetching dashboard data:', err);
@@ -116,50 +142,71 @@ function StudentDashboard() {
 
                             {/* Main Content Grid */}
                             <div className="dashboard-content-grid">
-                                {/* Enrolled Courses Section */}
-                                <div className="dashboard-section">
+                                {/* Recommended for You Section */}
+                                <div className="dashboard-section recommendation-section">
                                     <div className="section-header">
-                                        <h2>Enrolled Courses</h2>
-                                        <button className="see-all-btn" onClick={() => navigate('/student-courses')}>
-                                            See all →
-                                        </button>
+                                        <h2>Recommended for You</h2>
                                     </div>
-                                    <div className="courses-grid">
-                                        {/* Placeholder course cards */}
-                                        <div className="course-card">
-                                            <div className="course-thumbnail">
-                                                <svg width="100%" height="120" viewBox="0 0 200 120">
-                                                    <rect width="200" height="120" fill="#e0e7ff" />
-                                                    <text x="50%" y="50%" textAnchor="middle" fill="#667eea" fontSize="16">Course 1</text>
-                                                </svg>
-                                            </div>
-                                            <div className="course-info">
-                                                <h3>Course Title</h3>
-                                                <div className="course-progress">
-                                                    <div className="progress-bar">
-                                                        <div className="progress-fill" style={{ width: '60%' }}></div>
+                                    <div className="recommendation-container">
+                                        {dashboardData?.recommendation ? (
+                                            <div
+                                                className={`recommendation-card ${dashboardData.recommendation.percentage < 60 ? 'review-needed' : 'next-step'}`}
+                                                onClick={() => {
+                                                    const rec = dashboardData.recommendation;
+                                                    if (rec.percentage < 60 && rec.context) {
+                                                        navigate(`/student-dashboard/my-courses/${rec.context.courseId}/subjects/${rec.context.subjectId}/topics`);
+                                                    } else if (rec.nextTarget) {
+                                                        const target = rec.nextTarget;
+                                                        if (target.type === 'TOPIC') {
+                                                            navigate(`/student-dashboard/my-courses/${target.courseId}/subjects/${target.subjectId}/topics`);
+                                                        } else if (target.type === 'SUBJECT') {
+                                                            navigate(`/student-dashboard/my-courses/${target.courseId}/subjects/${target.id}/topics`);
+                                                        } else if (target.type === 'COURSE') {
+                                                            navigate(`/student-dashboard/my-courses/${target.id}/subjects`);
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                <div className="recommendation-badge">
+                                                    {dashboardData.recommendation.percentage < 60 ? 'NEEDS REVIEW' : 'NEXT STEP'}
+                                                </div>
+                                                <div className="recommendation-info">
+                                                    <div className="recommendation-type">
+                                                        {dashboardData.recommendation.percentage < 60 ? 'Reviewing:' : 'Up Next:'}
                                                     </div>
-                                                    <span className="progress-text">60% Complete</span>
+                                                    <h3 className="recommendation-title">
+                                                        {dashboardData.recommendation.percentage < 60
+                                                            ? dashboardData.recommendation.topicTitle
+                                                            : (dashboardData.recommendation.nextTarget?.title || 'Graduation!')}
+                                                    </h3>
+                                                    <p className="recommendation-description">
+                                                        {dashboardData.recommendation.percentage < 60
+                                                            ? `You scored ${dashboardData.recommendation.percentage}% on the last quiz. We recommend reviewing this topic to improve.`
+                                                            : `Great job! You've mastered the previous topic. Ready for the next challenge?`}
+                                                    </p>
+                                                </div>
+                                                <div className="recommendation-action">
+                                                    <span className="action-text">Continue Learning</span>
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                    </svg>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="course-card">
-                                            <div className="course-thumbnail">
-                                                <svg width="100%" height="120" viewBox="0 0 200 120">
-                                                    <rect width="200" height="120" fill="#fce7f3" />
-                                                    <text x="50%" y="50%" textAnchor="middle" fill="#ec4899" fontSize="16">Course 2</text>
-                                                </svg>
-                                            </div>
-                                            <div className="course-info">
-                                                <h3>Course Title</h3>
-                                                <div className="course-progress">
-                                                    <div className="progress-bar">
-                                                        <div className="progress-fill" style={{ width: '40%' }}></div>
-                                                    </div>
-                                                    <span className="progress-text">40% Complete</span>
+                                        ) : (
+                                            <div className="recommendation-card empty-rec" onClick={() => navigate('/student-dashboard/my-courses')}>
+                                                <div className="recommendation-badge">GET STARTED</div>
+                                                <div className="recommendation-info">
+                                                    <h3 className="recommendation-title">Ready to Start?</h3>
+                                                    <p className="recommendation-description">Begin your learning journey by exploring courses and subjects tailored for you.</p>
+                                                </div>
+                                                <div className="recommendation-action">
+                                                    <span className="action-text">Explore Courses</span>
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                    </svg>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
 
