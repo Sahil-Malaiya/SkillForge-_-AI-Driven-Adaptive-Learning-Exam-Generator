@@ -63,13 +63,22 @@ function Performance() {
     };
 
     const calculateTotalScore = (attempt) => {
-        if (attempt.answers && Array.isArray(attempt.answers)) {
-            return attempt.answers.reduce((sum, answer) => {
-                const marks = safeNumber(answer.marksObtained, 0);
-                return sum + marks;
-            }, 0);
-        }
-        return safeNumber(attempt.score, 0);
+        // Score is the count of correct MCQ answers (each worth 1 mark)
+        // ManualScore is the sum of marks from graded SAQs (each SAQ worth 1 mark)
+        const mcqScore = safeNumber(attempt.score, 0);
+        const manualScore = safeNumber(attempt.manualScore, 0);
+        return mcqScore + manualScore;
+    };
+
+    const calculateTotalPossibleMarks = (attempt) => {
+        // Total questions is the denominator for percentage calculation
+        // Each question (MCQ or SAQ) is worth 1 mark
+        return safeNumber(attempt.totalQuestions ?? attempt.total, 1);
+    };
+
+    const isFullyGraded = (attempt) => {
+        // Use backend status if available
+        return attempt.fullyAssessed !== undefined ? attempt.fullyAssessed : true;
     };
 
     const calculateOverallStats = () => {
@@ -82,13 +91,13 @@ function Performance() {
 
         stats.attempts.forEach(attempt => {
             totalScore += calculateTotalScore(attempt);
-            totalQuestions += safeNumber(attempt.totalQuestions ?? attempt.total, 0);
+            totalQuestions += calculateTotalPossibleMarks(attempt);
         });
 
         return {
             totalScore,
             totalQuestions,
-            avgPercentage: totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0,
+            avgPercentage: totalQuestions > 0 ? Math.min(100, Math.round((totalScore / totalQuestions) * 100)) : 0,
             totalAttempts: stats.attempts.length
         };
     };
@@ -107,7 +116,7 @@ function Performance() {
             }
 
             const score = calculateTotalScore(attempt);
-            const total = safeNumber(attempt.totalQuestions ?? attempt.total, 0);
+            const total = calculateTotalPossibleMarks(attempt);
 
             if (total > 0) {
                 subjectMap[subject].totalScore += score;
@@ -119,7 +128,7 @@ function Performance() {
         return Object.values(subjectMap).map(subject => ({
             ...subject,
             avgPercentage: subject.totalQuestions > 0
-                ? Math.round((subject.totalScore / subject.totalQuestions) * 100)
+                ? Math.min(100, Math.round((subject.totalScore / subject.totalQuestions) * 100))
                 : 0
         }));
     };
@@ -269,30 +278,44 @@ function Performance() {
                                     <div className="attempts-list">
                                         {stats.attempts.slice(0, 10).map((attempt, index) => {
                                             const score = calculateTotalScore(attempt);
-                                            const total = safeNumber(attempt.totalQuestions ?? attempt.total, 0);
-                                            const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
+                                            const total = calculateTotalPossibleMarks(attempt);
+                                            const percentage = total > 0 ? Math.min(100, Math.round((score / total) * 100)) : 0;
+                                            const fullyGraded = isFullyGraded(attempt);
 
                                             return (
                                                 <div key={attempt.id || index} className="attempt-item">
                                                     <div className="attempt-main">
                                                         <div className="attempt-title">
                                                             {attempt.quiz?.title || `Quiz ${index + 1}`}
+                                                            {attempt.quiz?.difficulty && (
+                                                                <span className={`difficulty-badge difficulty-${attempt.quiz.difficulty.toLowerCase()}`}>
+                                                                    {attempt.quiz.difficulty}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className="attempt-subject">
-                                                            {attempt.quiz?.topic?.subject?.name || attempt.quiz?.topic?.course?.name || 'General'}
+                                                            {attempt.quiz?.topic?.title || attempt.quiz?.topic?.subject?.name || attempt.quiz?.topic?.course?.name || 'General'}
                                                         </div>
+                                                    </div>
+                                                    <div className="attempt-progress-panel">
+                                                        <div className="progress-bar">
+                                                            <div className="progress-bar-fill" style={{ width: `${percentage}%`, background: getPerformanceColor(percentage) }}></div>
+                                                        </div>
+                                                        <span className="percentage-text">{percentage}%</span>
                                                     </div>
                                                     <div className="attempt-stats">
                                                         <span className="attempt-score">{score}/{total}</span>
-                                                        <span className="attempt-percentage" style={{ color: getPerformanceColor(percentage) }}>
-                                                            {percentage}%
-                                                        </span>
                                                         <span className="attempt-badge" style={{
                                                             background: getPerformanceColor(percentage),
                                                             color: 'white'
                                                         }}>
                                                             {getPerformanceGrade(percentage)}
                                                         </span>
+                                                        {!fullyGraded && (
+                                                            <span className="grading-badge" title="Some answers are pending grading">
+                                                                ⏳ Pending
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );
@@ -377,13 +400,15 @@ function drawCharts(stats) {
     if (!stats?.attempts || stats.attempts.length === 0) return;
 
     const calculateTotalScore = (attempt) => {
-        if (attempt.answers && Array.isArray(attempt.answers)) {
-            return attempt.answers.reduce((sum, answer) => {
-                const marks = Number(answer.marksObtained) || 0;
-                return sum + marks;
-            }, 0);
-        }
-        return Number(attempt.score) || 0;
+        // Score is count of correct answers, manualScore is sum of SAQ marks
+        const mcqScore = Number(attempt.score) || 0;
+        const manualScore = Number(attempt.manualScore) || 0;
+        return mcqScore + manualScore;
+    };
+
+    const calculateTotalPossibleMarks = (attempt) => {
+        // Total questions for percentage calculation
+        return Number(attempt.totalQuestions || attempt.total) || 1;
     };
 
     try {
@@ -403,8 +428,8 @@ function drawCharts(stats) {
 
         ctx.clearRect(0, 0, width, height);
 
-        // Draw grid
-        ctx.strokeStyle = '#f1f5f9';
+        // Draw grid with purple theme
+        ctx.strokeStyle = '#ede9fe';
         ctx.lineWidth = 1;
         for (let i = 0; i <= 4; i++) {
             const y = padding + (chartHeight / 4) * i;
@@ -413,14 +438,19 @@ function drawCharts(stats) {
             ctx.lineTo(width - padding, y);
             ctx.stroke();
 
-            ctx.fillStyle = '#94a3b8';
+            ctx.fillStyle = '#8b5cf6';
             ctx.font = '11px Inter, sans-serif';
             ctx.textAlign = 'right';
             ctx.fillText(`${100 - i * 25}%`, padding - 10, y + 4);
         }
 
+        // Create gradient for line
+        const gradient = ctx.createLinearGradient(0, 0, width, 0);
+        gradient.addColorStop(0, '#8b5cf6');
+        gradient.addColorStop(1, '#a78bfa');
+
         // Draw line
-        ctx.strokeStyle = '#8b5cf6';
+        ctx.strokeStyle = gradient;
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -428,8 +458,8 @@ function drawCharts(stats) {
 
         sortedAttempts.forEach((attempt, index) => {
             const score = calculateTotalScore(attempt);
-            const total = Number(attempt.totalQuestions || attempt.total) || 1;
-            const percentage = (score / total) * 100;
+            const total = calculateTotalPossibleMarks(attempt);
+            const percentage = total > 0 ? (score / total) * 100 : 0;
 
             const x = padding + (chartWidth / (sortedAttempts.length - 1 || 1)) * index;
             const y = padding + chartHeight - (percentage / 100) * chartHeight;
@@ -443,17 +473,17 @@ function drawCharts(stats) {
 
         ctx.stroke();
 
-        // Draw points
+        // Draw points with gradient
         sortedAttempts.forEach((attempt, index) => {
             const score = calculateTotalScore(attempt);
-            const total = Number(attempt.totalQuestions || attempt.total) || 1;
-            const percentage = (score / total) * 100;
+            const total = calculateTotalPossibleMarks(attempt);
+            const percentage = total > 0 ? Math.min(100, (score / total) * 100) : 0;
 
             const x = padding + (chartWidth / (sortedAttempts.length - 1 || 1)) * index;
             const y = padding + chartHeight - (percentage / 100) * chartHeight;
 
             ctx.beginPath();
-            ctx.arc(x, y, 4, 0, 2 * Math.PI);
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
             ctx.fillStyle = '#8b5cf6';
             ctx.fill();
             ctx.strokeStyle = 'white';
@@ -461,7 +491,7 @@ function drawCharts(stats) {
             ctx.stroke();
 
             // X-axis labels
-            ctx.fillStyle = '#94a3b8';
+            ctx.fillStyle = '#8b5cf6';
             ctx.font = '10px Inter, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(`Q${index + 1}`, x, height - padding + 18);

@@ -6,14 +6,18 @@ import './QuizResult.css';
 
 function QuizResult({ result = {}, onClose, onRetry }) {
     const totalQuestions = Number(result.totalQuestions ?? result.total ?? (result.questionResults ? result.questionResults.length : 0) ?? 0);
+    // Score represents the COUNT of correct answers (each question worth 1 mark)
+    // NOT a percentage or weighted score
     const correct = Number(result.correctAnswers ?? result.correct_answers ?? result.correct ?? result.score ?? NaN);
 
-    // Calculate percentage defensively: prefer using number of correct answers when available.
+    // Calculate percentage: (correct answers / total questions) * 100
     let percentage = 0;
     if (totalQuestions === 0) {
         percentage = 0;
     } else if (!Number.isNaN(correct)) {
-        percentage = Math.round((correct / totalQuestions) * 100);
+        // Correct is the number of questions answered correctly
+        // Cap at 100% to handle any data inconsistencies
+        percentage = Math.min(100, Math.round((correct / totalQuestions) * 100));
     } else if (result.score != null) {
         // Fallback: score might already be a percentage or fraction
         const raw = Number(result.score);
