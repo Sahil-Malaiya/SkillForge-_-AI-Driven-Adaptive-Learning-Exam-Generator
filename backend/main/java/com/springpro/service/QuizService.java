@@ -13,6 +13,7 @@ import com.springpro.repository.StudentRepository;
 import com.springpro.repository.TopicRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -155,18 +156,13 @@ public class QuizService {
         return quizRepository.findByTopicId(topicId);
     }
 
+    @Transactional
     public void deleteQuiz(Long id) {
-        // Return early with a clear exception if the quiz has already been attempted
-        if (attemptRepository.existsByQuizId(id)) {
-            throw new IllegalStateException("This quiz has already been attempted by students and cannot be deleted.");
-        }
+        Quiz quiz = quizRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Quiz not found with id " + id));
 
-        // Ensure quiz exists before attempting to delete - helps avoid ambiguous errors
-        if (!quizRepository.existsById(id)) {
-            throw new RuntimeException("Quiz not found with id " + id);
-        }
-
-        quizRepository.deleteById(id);
+        // Let JPA/Hibernate cascade-delete related assignments, questions, attempts and answers
+        quizRepository.delete(quiz);
     }
 
     public List<QuizQuestion> getQuestionsByQuizId(Long quizId) {

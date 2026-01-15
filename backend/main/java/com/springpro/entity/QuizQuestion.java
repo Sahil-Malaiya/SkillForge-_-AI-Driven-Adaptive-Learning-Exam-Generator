@@ -1,6 +1,7 @@
 package com.springpro.entity;
 
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 public class QuizQuestion {
@@ -27,6 +28,10 @@ public class QuizQuestion {
     private QuestionType type = QuestionType.MCQ;
 
     private String correctAnswer;
+
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<StudentQuizAnswer> answers;
 
     // getters + setters
     public QuestionType getType() {
@@ -99,6 +104,14 @@ public class QuizQuestion {
 
     public void setCorrectAnswer(String correctAnswer) {
         this.correctAnswer = correctAnswer;
+    }
+
+    public java.util.List<StudentQuizAnswer> getAnswers() {
+        return answers;
+    }
+
+    public void setAnswers(java.util.List<StudentQuizAnswer> answers) {
+        this.answers = answers;
     }
 
 }

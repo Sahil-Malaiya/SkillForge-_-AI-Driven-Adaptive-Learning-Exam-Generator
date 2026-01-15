@@ -2,6 +2,7 @@ package com.springpro.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 public class StudentQuizAttempt {
@@ -25,6 +26,10 @@ public class StudentQuizAttempt {
     private int manualScore = 0;
 
     private LocalDateTime attemptedAt;
+
+    @OneToMany(mappedBy = "attempt", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<StudentQuizAnswer> answers;
 
     // getters and setters
     public Long getId() {
@@ -73,6 +78,14 @@ public class StudentQuizAttempt {
 
     public void setAttemptedAt(LocalDateTime attemptedAt) {
         this.attemptedAt = attemptedAt;
+    }
+
+    public java.util.List<StudentQuizAnswer> getAnswers() {
+        return answers;
+    }
+
+    public void setAnswers(java.util.List<StudentQuizAnswer> answers) {
+        this.answers = answers;
     }
 
     public boolean isFullyAssessed() {

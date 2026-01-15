@@ -25,9 +25,13 @@ public class Quiz {
     public Quiz() {
     }
 
-    @OneToMany(mappedBy = "quiz", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     @com.fasterxml.jackson.annotation.JsonIgnore
     private java.util.List<QuizAssignment> assignments;
+
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<com.springpro.entity.StudentQuizAttempt> attempts;
 
     public Quiz(Long id, Topic topic, String difficulty, LocalDateTime createdAt) {
         this.id = id;
@@ -74,5 +78,21 @@ public class Quiz {
 
     public void setQuestions(java.util.List<QuizQuestion> questions) {
         this.questions = questions;
+    }
+
+    public java.util.List<QuizAssignment> getAssignments() {
+        return assignments;
+    }
+
+    public void setAssignments(java.util.List<QuizAssignment> assignments) {
+        this.assignments = assignments;
+    }
+
+    public java.util.List<com.springpro.entity.StudentQuizAttempt> getAttempts() {
+        return attempts;
+    }
+
+    public void setAttempts(java.util.List<com.springpro.entity.StudentQuizAttempt> attempts) {
+        this.attempts = attempts;
     }
 }
