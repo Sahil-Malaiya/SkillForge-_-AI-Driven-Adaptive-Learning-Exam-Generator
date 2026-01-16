@@ -15,7 +15,6 @@ A modern, secure web application providing JWT-based authentication and role-bas
 - **Student Management**: Manage student records and information
 - **Password Reset**: Secure password reset flow with email tokens
 - **Activity Logging**: Track user actions for security and analytics
-- **Admin Dashboard**: System analytics and user management interface
 - **Premium UI**: Modern, responsive design with glassmorphism effects
 - **RESTful API**: Well-documented REST API with comprehensive error handling
 
