@@ -39,6 +39,9 @@ public class StudentQuizController {
     @Autowired
     private QuizAssignmentRepository quizAssignmentRepository;
 
+    @Autowired
+    private com.springpro.repository.SubjectRepository subjectRepository;
+
     // Start an assigned quiz for a student. Requires existing QuizAssignment.
     @PostMapping("/quizzes")
     public ResponseEntity<Map<String, Object>> generateQuiz(@PathVariable Long studentId,
@@ -95,10 +98,28 @@ public class StudentQuizController {
         // Calculate overall accuracy (capped at 100%)
         double accuracy = totalQuestions == 0 ? 0 : Math.min(100.0, ((double) totalScore / totalQuestions) * 100);
 
+        // Calculate enrolled courses (courses where student has taken at least one
+        // quiz)
+        java.util.Set<Long> courseIds = new java.util.HashSet<>();
+        for (StudentQuizAttempt attempt : attempts) {
+            if (attempt.getQuiz() != null && attempt.getQuiz().getTopic() != null) {
+                Long subjectId = attempt.getQuiz().getTopic().getSubjectId();
+                if (subjectId != null) {
+                    subjectRepository.findById(subjectId).ifPresent(subject -> {
+                        if (subject.getCourseId() != null) {
+                            courseIds.add(subject.getCourseId());
+                        }
+                    });
+                }
+            }
+        }
+        long enrolledCourses = courseIds.size();
+
         Map<String, Object> resp = new HashMap<>();
         resp.put("totalAttempts", totalAttempts);
         resp.put("avgScore", Math.round(avgScore));
         resp.put("accuracy", Math.round(accuracy));
+        resp.put("enrolledCourses", enrolledCourses);
         resp.put("attempts", attempts);
         return ResponseEntity.ok(resp);
     }

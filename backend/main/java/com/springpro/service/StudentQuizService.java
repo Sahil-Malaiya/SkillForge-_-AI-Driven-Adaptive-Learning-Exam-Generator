@@ -83,6 +83,11 @@ public class StudentQuizService {
 
         List<QuizQuestion> questions = quizQuestionRepository.findByQuizId(quizId);
 
+        // Validate that quiz has questions
+        if (questions.isEmpty()) {
+            throw new RuntimeException("Cannot submit quiz with no questions");
+        }
+
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 

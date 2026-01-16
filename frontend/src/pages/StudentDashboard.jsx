@@ -9,6 +9,7 @@ import './StudentDashboard.css';
 function StudentDashboard() {
     const navigate = useNavigate();
     const [dashboardData, setDashboardData] = useState(null);
+    const [studentProfile, setStudentProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -27,20 +28,24 @@ function StudentDashboard() {
             const currentUser = authService.getCurrentUser()?.user || authService.getCurrentUser();
             const resp = await studentQuizService.getProgress(currentUser || studentId);
 
+            // Fetch student profile to get profile image
+            try {
+                const profileRes = await fetch(`http://localhost:8080/api/students/${studentId}`, {
+                    headers: { 'Authorization': `Bearer ${authService.getToken()}` }
+                });
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    setStudentProfile(profileData);
+                }
+            } catch (profileErr) {
+                console.error('Error fetching student profile:', profileErr);
+            }
+
             const attempts = resp?.attempts || [];
             const attemptCount = resp?.totalAttempts ?? attempts.length ?? 0;
 
-            // Calculate average score
-            let avgScore = 0;
-            if (attempts.length > 0) {
-                const scores = attempts.map(a => {
-                    const autoScore = Number(a.score || 0);
-                    const manualScore = Number(a.manualScore || 0);
-                    const total = Number(a.totalQuestions || 0);
-                    return total > 0 ? Math.min(100, Math.round(((autoScore + manualScore) / total) * 100)) : 0;
-                });
-                avgScore = Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
-            }
+            // Use avgScore from backend instead of recalculating
+            const avgScore = resp?.avgScore || 0;
 
             // Finding the latest recommendation
             let recommendation = null;
@@ -103,17 +108,20 @@ function StudentDashboard() {
                     {/* Welcome Banner */}
                     <div className="welcome-banner">
                         <div className="welcome-content">
-                            <p className="welcome-date">{getCurrentDate()}</p>
-                            <h1 className="welcome-title">Welcome back, {user?.fullName || 'Student'}!</h1>
-                            <p className="welcome-subtitle">Always stay updated in your student portal</p>
+                            <h1 className="welcome-title">Welcome to SkillForge</h1>
+                            <p className="welcome-subtitle">{user?.fullName || 'Student'}</p>
                         </div>
-                        <div className="welcome-illustration">
-                            <svg width="200" height="150" viewBox="0 0 200 150" fill="none">
-                                <circle cx="100" cy="75" r="50" fill="rgba(255,255,255,0.2)" />
-                                <rect x="70" y="50" width="60" height="50" rx="5" fill="rgba(255,255,255,0.3)" />
-                                <circle cx="85" cy="65" r="8" fill="rgba(255,255,255,0.5)" />
-                                <circle cx="115" cy="65" r="8" fill="rgba(255,255,255,0.5)" />
-                            </svg>
+                        <div className="welcome-profile">
+                            {studentProfile?.profileImage ? (
+                                <img src={studentProfile.profileImage} alt="Profile" className="profile-picture" />
+                            ) : (
+                                <div className="default-profile-picture">
+                                    <svg width="80" height="80" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="256" cy="256" r="256" fill="#e5e7eb" />
+                                        <path d="M256 288c61.9 0 112-50.1 112-112S317.9 64 256 64 144 114.1 144 176s50.1 112 112 112zm0 32c-74.7 0-224 37.3-224 112v48h448v-48c0-74.7-149.3-112-224-112z" fill="#9ca3af" />
+                                    </svg>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -124,19 +132,22 @@ function StudentDashboard() {
                             {/* Statistics Cards */}
                             <div className="stats-grid">
                                 <div className="stat-card stat-purple">
-                                    <div className="stat-icon">📝</div>
+                                    <div className="stat-icon">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#667eea" strokeWidth="2">
+                                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                        </svg>
+                                    </div>
                                     <div className="stat-value">{dashboardData?.totalAttempts || 0}</div>
                                     <div className="stat-label">Quizzes Attempted</div>
                                 </div>
                                 <div className="stat-card stat-pink">
-                                    <div className="stat-icon">🎯</div>
+                                    <div className="stat-icon">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2">
+                                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
                                     <div className="stat-value">{dashboardData?.avgScore || 0}%</div>
                                     <div className="stat-label">Average Score</div>
-                                </div>
-                                <div className="stat-card stat-blue">
-                                    <div className="stat-icon">📚</div>
-                                    <div className="stat-value">{dashboardData?.enrolledCourses || 0}</div>
-                                    <div className="stat-label">Enrolled Courses</div>
                                 </div>
                             </div>
 
@@ -214,7 +225,7 @@ function StudentDashboard() {
                                 <div className="dashboard-section">
                                     <div className="section-header">
                                         <h2>Recent Quizzes</h2>
-                                        <button className="see-all-btn" onClick={() => navigate('/student-quizzes')}>
+                                        <button className="see-all-btn" onClick={() => navigate('/student-dashboard/quizzes')}>
                                             See all →
                                         </button>
                                     </div>
@@ -230,7 +241,7 @@ function StudentDashboard() {
                                                 return (
                                                     <div key={idx} className="quiz-item">
                                                         <div className="quiz-info">
-                                                            <h4>{quiz.quiz?.title || `Quiz ${idx + 1}`}</h4>
+                                                            <h4>{quiz.quiz?.topic?.title || quiz.quiz?.title || `Quiz ${idx + 1}`}</h4>
                                                             <p className="quiz-date">{date}</p>
                                                         </div>
                                                         <div className="quiz-score">
@@ -242,27 +253,6 @@ function StudentDashboard() {
                                         ) : (
                                             <p className="no-data">No quizzes attempted yet. Start learning!</p>
                                         )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Daily Notice Section */}
-                            <div className="dashboard-section notice-section">
-                                <h2>Daily Notice</h2>
-                                <div className="notice-list">
-                                    <div className="notice-item">
-                                        <div className="notice-icon">📢</div>
-                                        <div className="notice-content">
-                                            <h4>Welcome to SkillForge!</h4>
-                                            <p>Start your learning journey by taking your first quiz.</p>
-                                        </div>
-                                    </div>
-                                    <div className="notice-item">
-                                        <div className="notice-icon">🎓</div>
-                                        <div className="notice-content">
-                                            <h4>New Courses Available</h4>
-                                            <p>Check out the latest courses added to your curriculum.</p>
-                                        </div>
                                     </div>
                                 </div>
                             </div>

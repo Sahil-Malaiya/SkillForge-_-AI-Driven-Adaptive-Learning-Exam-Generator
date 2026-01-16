@@ -16,6 +16,15 @@ public class StudentController {
     private StudentService service;
 
     @Autowired
+    private com.springpro.repository.QuizAssignmentRepository quizAssignmentRepository;
+
+    @Autowired
+    private com.springpro.repository.StudentQuizAttemptRepository attemptRepository;
+
+    @Autowired
+    private com.springpro.repository.SubjectRepository subjectRepository;
+
+    @Autowired
     private com.springpro.repository.CourseRepository courseRepository;
 
     @PostMapping
@@ -36,10 +45,31 @@ public class StudentController {
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
     }
 
-    // For now return all courses as "enrolled" for the student (placeholder until enrollment implemented)
     @GetMapping("/{id}/courses")
     public List<com.springpro.entity.Course> getEnrolledCourses(@PathVariable Long id) {
-        return courseRepository.findAll();
+        // Get all quiz attempts for this student
+        List<com.springpro.entity.StudentQuizAttempt> attempts = attemptRepository.findByStudentId(id);
+
+        // Extract unique course IDs from quiz attempts
+        java.util.Set<Long> courseIds = new java.util.HashSet<>();
+        for (com.springpro.entity.StudentQuizAttempt attempt : attempts) {
+            if (attempt.getQuiz() != null && attempt.getQuiz().getTopic() != null) {
+                Long subjectId = attempt.getQuiz().getTopic().getSubjectId();
+                if (subjectId != null) {
+                    subjectRepository.findById(subjectId).ifPresent(subject -> {
+                        if (subject.getCourseId() != null) {
+                            courseIds.add(subject.getCourseId());
+                        }
+                    });
+                }
+            }
+        }
+
+        // Fetch and return the courses
+        return courseIds.stream()
+                .map(courseId -> courseRepository.findById(courseId).orElse(null))
+                .filter(course -> course != null)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @PutMapping("/{id}")
