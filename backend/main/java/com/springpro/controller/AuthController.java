@@ -5,10 +5,7 @@ import com.springpro.dto.AuthenticationResponse;
 import com.springpro.dto.RegisterRequest;
 import com.springpro.service.AuthenticationService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -23,12 +20,19 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(
             @RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(service.register(request));
+
+        // Service will handle user creation + email sending
+        AuthenticationResponse response = service.register(request);
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/authenticate")
     public ResponseEntity<AuthenticationResponse> authenticate(
             @RequestBody AuthenticationRequest request) {
-        return ResponseEntity.ok(service.authenticate(request));
+
+        AuthenticationResponse response = service.authenticate(request);
+
+        return ResponseEntity.ok(response);
     }
 }

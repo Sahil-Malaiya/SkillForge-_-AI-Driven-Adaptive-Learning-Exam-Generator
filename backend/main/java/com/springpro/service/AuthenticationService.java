@@ -25,28 +25,38 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
-    public AuthenticationService(UserRepository repository, StudentRepository studentRepository,
-            PasswordEncoder passwordEncoder, JwtService jwtService,
-            AuthenticationManager authenticationManager) {
+    public AuthenticationService(UserRepository repository,
+                                 StudentRepository studentRepository,
+                                 PasswordEncoder passwordEncoder,
+                                 JwtService jwtService,
+                                 AuthenticationManager authenticationManager,
+                                 EmailService emailService) {
         this.repository = repository;
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.emailService = emailService;
     }
 
     public AuthenticationResponse register(RegisterRequest request) {
+
         // Prevent admin registration through public endpoint
-        if (request.getRole() == com.springpro.entity.Role.ADMIN) {
+        if (request.getRole() == Role.ADMIN) {
             throw new IllegalArgumentException("Admin registration is not allowed through this endpoint");
         }
+
+        // store raw password for email
+        String rawPassword = request.getPassword();
 
         var user = new User(
                 request.getFullName(),
                 request.getEmail(),
-                passwordEncoder.encode(request.getPassword()),
+                passwordEncoder.encode(rawPassword),
                 request.getRole());
+
         repository.save(user);
 
         // If the user is a student, also create a record in the students table
@@ -56,8 +66,27 @@ public class AuthenticationService {
             student = studentRepository.save(student);
             studentId = student.getId();
         }
+
+        // EMAIL SEND AFTER REGISTRATION
+        try {
+            emailService.sendRegistrationEmail(
+                    user.getEmail(),
+                    user.getFullName(),
+                    rawPassword
+            );
+            System.out.println("Registration email sent to: " + user.getEmail());
+        } catch (Exception e) {
+            System.out.println("Email sending failed: " + e.getMessage());
+        }
+
         var jwtToken = jwtService.generateToken(user);
-        return new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), studentId, user.getEmail(),
+
+        return new AuthenticationResponse(
+                jwtToken,
+                user.getRole(),
+                user.getId(),
+                studentId,
+                user.getEmail(),
                 user.getFullName());
     }
 
@@ -66,10 +95,12 @@ public class AuthenticationService {
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
                         request.getPassword()));
+
         var user = repository.findByEmail(request.getEmail())
                 .orElseThrow();
+
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", user.getRole().name()); // 👈 ADD ROLE HERE
+        claims.put("role", user.getRole().name());
 
         var jwtToken = jwtService.generateToken(claims, user);
 
@@ -80,7 +111,12 @@ public class AuthenticationService {
                     .orElse(null);
         }
 
-        return new AuthenticationResponse(jwtToken, user.getRole(), user.getId(), studentId, user.getEmail(),
+        return new AuthenticationResponse(
+                jwtToken,
+                user.getRole(),
+                user.getId(),
+                studentId,
+                user.getEmail(),
                 user.getFullName());
     }
 }
